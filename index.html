@@ -401,6 +401,122 @@
         align-items: flex-start;
       }
     }
+
+    .flashcards-app {
+      margin-top: 18px;
+    }
+
+    .flashcard-counter {
+      text-align: center;
+      color: #64748b;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .flashcard-scene {
+      width: 100%;
+      max-width: 650px;
+      height: 330px;
+      margin: 0 auto 18px;
+      perspective: 1200px;
+      cursor: pointer;
+    }
+
+    .flashcard {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.55s ease;
+    }
+
+    .flashcard.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .flashcard-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border-radius: 22px;
+      border: 2px solid #bfdbfe;
+      background: linear-gradient(145deg, #ffffff, #eff6ff);
+      box-shadow: 0 18px 45px rgba(37, 99, 235, 0.14);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 35px;
+      text-align: center;
+    }
+
+    .flashcard-face.back {
+      transform: rotateY(180deg);
+      background: linear-gradient(145deg, #fff, #fffbeb);
+      border-color: #fcd34d;
+    }
+
+    .flashcard-label {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #2563eb;
+      margin-bottom: 18px;
+    }
+
+    .flashcard-face.back .flashcard-label {
+      color: #d97706;
+    }
+
+    .flashcard-text {
+      font-size: 24px;
+      line-height: 1.45;
+      color: #172554;
+      font-weight: 700;
+    }
+
+    .flashcard-hint {
+      text-align: center;
+      color: #64748b;
+      font-size: 13px;
+      margin-bottom: 18px;
+    }
+
+    .flashcard-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .flashcard-control {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+
+    .flashcard-control.primary {
+      background: #2563eb;
+      color: white;
+    }
+
+    .flashcard-control:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 600px) {
+      .flashcard-scene {
+        height: 360px;
+      }
+
+      .flashcard-text {
+        font-size: 20px;
+      }
+    }
+
   </style>
 </head>
 
@@ -1231,8 +1347,25 @@
         throw new Error(data.error || "Не удалось получить ответ от AI.");
       }
 
-      aiContent.className = "ai-result";
-      aiContent.textContent = data.result || "AI не вернул результат.";
+      // Для карточек показываем интерактивный интерфейс.
+      if (type === "flashcards") {
+        let cards;
+
+        try {
+          cards = JSON.parse(data.result);
+        } catch (parseError) {
+          throw new Error("AI вернул карточки в неправильном формате.");
+        }
+
+        if (!Array.isArray(cards) || cards.length === 0) {
+          throw new Error("AI не создал карточки.");
+        }
+
+        renderFlashcards(cards);
+      } else {
+        aiContent.className = "ai-result";
+        aiContent.textContent = data.result || "AI не вернул результат.";
+      }
 
       // Сохраняем результат в Supabase.
       const {
@@ -1255,6 +1388,154 @@
         "Не удалось обработать материал.\n\n" + error.message;
     }
   }
+
+
+  /* ==============================
+     INTERACTIVE FLASHCARDS
+  ============================== */
+
+  function renderFlashcards(cards) {
+    const safeCards = cards
+      .filter(card =>
+        card &&
+        typeof card.question === "string" &&
+        typeof card.answer === "string"
+      )
+      .map(card => ({
+        question: card.question.trim(),
+        answer: card.answer.trim()
+      }))
+      .filter(card => card.question && card.answer);
+
+    if (!safeCards.length) {
+      throw new Error("Не найдено ни одной корректной карточки.");
+    }
+
+    let current = 0;
+    let flipped = false;
+
+    aiContent.className = "flashcards-app";
+    aiContent.innerHTML = "";
+
+    const counter = window.document.createElement("div");
+    counter.className = "flashcard-counter";
+
+    const scene = window.document.createElement("div");
+    scene.className = "flashcard-scene";
+    scene.setAttribute("role", "button");
+    scene.setAttribute("tabindex", "0");
+    scene.setAttribute("aria-label", "Нажми, чтобы перевернуть карточку");
+
+    const card = window.document.createElement("div");
+    card.className = "flashcard";
+
+    const front = window.document.createElement("div");
+    front.className = "flashcard-face front";
+
+    const frontLabel = window.document.createElement("div");
+    frontLabel.className = "flashcard-label";
+    frontLabel.textContent = "Вопрос";
+
+    const question = window.document.createElement("div");
+    question.className = "flashcard-text";
+
+    const back = window.document.createElement("div");
+    back.className = "flashcard-face back";
+
+    const backLabel = window.document.createElement("div");
+    backLabel.className = "flashcard-label";
+    backLabel.textContent = "Ответ";
+
+    const answer = window.document.createElement("div");
+    answer.className = "flashcard-text";
+
+    front.appendChild(frontLabel);
+    front.appendChild(question);
+    back.appendChild(backLabel);
+    back.appendChild(answer);
+
+    card.appendChild(front);
+    card.appendChild(back);
+    scene.appendChild(card);
+
+    const hint = window.document.createElement("div");
+    hint.className = "flashcard-hint";
+    hint.textContent = "👆 Нажми на карточку, чтобы увидеть ответ";
+
+    const controls = window.document.createElement("div");
+    controls.className = "flashcard-controls";
+
+    const previous = window.document.createElement("button");
+    previous.className = "flashcard-control";
+    previous.type = "button";
+    previous.textContent = "← Назад";
+
+    const next = window.document.createElement("button");
+    next.className = "flashcard-control primary";
+    next.type = "button";
+    next.textContent = "Дальше →";
+
+    controls.appendChild(previous);
+    controls.appendChild(next);
+
+    aiContent.appendChild(counter);
+    aiContent.appendChild(scene);
+    aiContent.appendChild(hint);
+    aiContent.appendChild(controls);
+
+    function updateCard() {
+      const item = safeCards[current];
+
+      counter.textContent =
+        `Карточка ${current + 1} из ${safeCards.length}`;
+
+      question.textContent = item.question;
+      answer.textContent = item.answer;
+
+      card.classList.toggle("flipped", flipped);
+
+      previous.disabled = current === 0;
+      next.disabled = current === safeCards.length - 1;
+
+      hint.textContent = flipped
+        ? "👆 Нажми на карточку, чтобы вернуться к вопросу"
+        : "👆 Нажми на карточку, чтобы увидеть ответ";
+    }
+
+    function flipCard() {
+      flipped = !flipped;
+      updateCard();
+    }
+
+    function goNext() {
+      if (current >= safeCards.length - 1) return;
+      current++;
+      flipped = false;
+      updateCard();
+    }
+
+    function goPrevious() {
+      if (current <= 0) return;
+      current--;
+      flipped = false;
+      updateCard();
+    }
+
+    scene.addEventListener("click", flipCard);
+
+    scene.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        flipCard();
+      }
+    });
+
+    previous.addEventListener("click", goPrevious);
+    next.addEventListener("click", goNext);
+
+    updateCard();
+  }
+
 
   /* ==============================
      DELETE MATERIAL
