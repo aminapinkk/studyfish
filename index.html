@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudyFish</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4fbff;
+      color: #173b56;
+    }
+
+    .navbar {
+      height: 70px;
+      background: white;
+      border-bottom: 1px solid #dceef7;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #176da5;
+    }
+
+    .fish {
+      font-size: 32px;
+    }
+
+    .hero {
+      max-width: 1100px;
+      margin: 80px auto;
+      padding: 60px;
+      background: linear-gradient(135deg, #dff5ff, #ffffff);
+      border-radius: 30px;
+      text-align: center;
+    }
+
+    .hero h1 {
+      font-size: 52px;
+      margin: 0 0 20px;
+    }
+
+    .hero p {
+      max-width: 650px;
+      margin: 0 auto 30px;
+      font-size: 18px;
+      line-height: 1.6;
+      color: #668399;
+    }
+
+    .upload {
+      display: inline-block;
+      padding: 15px 24px;
+      background: #176da5;
+      color: white;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .upload input {
+      display: none;
+    }
+
+    .features {
+      max-width: 1100px;
+      margin: 0 auto 80px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      padding: 0 20px;
+    }
+
+    .card {
+      background: white;
+      border: 1px solid #dceef7;
+      border-radius: 18px;
+      padding: 25px;
+    }
+
+    .card-icon {
+      font-size: 30px;
+      margin-bottom: 15px;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+    }
+
+    .card p {
+      color: #71899a;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    @media (max-width: 800px) {
+      .features {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .hero {
+        margin: 30px 15px;
+        padding: 40px 20px;
+      }
+
+      .hero h1 {
+        font-size: 38px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="navbar">
+    <div class="logo">
+      <span class="fish">🐟</span>
+      StudyFish
+    </div>
+
+    <div>
+      Your AI Study Companion
+    </div>
+  </nav>
+
+  <section class="hero">
+
+    <div style="font-size: 80px;">
+      🐠
+    </div>
+
+    <h1>
+      Learn smarter with StudyFish
+    </h1>
+
+    <p>
+      Upload your study material and turn it into summaries,
+      quizzes, flashcards, podcasts and answers.
+    </p>
+
+    <label class="upload">
+      📄 Upload your material
+      <input type="file">
+    </label>
+
+  </section>
+
+  <section class="features">
+
+    <div class="card">
+      <div class="card-icon">✨</div>
+      <h3>Summary</h3>
+      <p>
+        Turn long documents into clear, easy-to-understand summaries.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon">🧠</div>
+      <h3>Quiz</h3>
+      <p>
+        Test yourself with AI-generated questions.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon">🃏</div>
+      <h3>Flashcards</h3>
+      <p>
+        Memorize important concepts with smart flashcards.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-icon">🎙️</div>
+      <h3>Podcast</h3>
+      <p>
+        Turn your study material into an educational podcast.
+      </p>
+    </div>
+
+  </section>
+
+</body>
+</html>
