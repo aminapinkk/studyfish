@@ -1349,12 +1349,42 @@
 
       // Для карточек показываем интерактивный интерфейс.
       if (type === "flashcards") {
-        let cards;
+        let cards = data.result;
 
-        try {
-          cards = JSON.parse(data.result);
-        } catch (parseError) {
-          throw new Error("AI вернул карточки в неправильном формате.");
+        // API обычно возвращает JSON-массив строкой.
+        // Дополнительно поддерживаем ```json ...``` и случай,
+        // когда результат пришёл уже как массив/объект.
+        if (typeof cards === "string") {
+          let cleaned = cards.trim();
+
+          cleaned = cleaned
+            .replace(/^```json\\s*/i, "")
+            .replace(/^```\\s*/i, "")
+            .replace(/\\s*```$/i, "")
+            .trim();
+
+          try {
+            cards = JSON.parse(cleaned);
+          } catch (parseError) {
+            // Попробуем найти JSON-массив внутри ответа AI.
+            const start = cleaned.indexOf("[");
+            const end = cleaned.lastIndexOf("]");
+
+            if (start !== -1 && end > start) {
+              try {
+                cards = JSON.parse(cleaned.slice(start, end + 1));
+              } catch (secondError) {
+                throw new Error("AI вернул карточки в неправильном формате.");
+              }
+            } else {
+              throw new Error("AI вернул карточки в неправильном формате.");
+            }
+          }
+        }
+
+        // Поддержка формата { "cards": [...] } на случай изменения API.
+        if (cards && !Array.isArray(cards) && Array.isArray(cards.cards)) {
+          cards = cards.cards;
         }
 
         if (!Array.isArray(cards) || cards.length === 0) {
