@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>StudyFish — AI Study Assistant</title>
+  <title>StudyFish — AI-помощник для учёбы</title>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
 
   <style>
     * {
@@ -315,6 +317,90 @@
         gap: 12px;
       }
     }
+
+    .material-actions {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .ai-btn {
+      background: #eff6ff;
+      color: #2563eb;
+      padding: 8px 11px;
+      font-size: 12px;
+      border: 1px solid #bfdbfe;
+    }
+
+    .ai-btn:hover {
+      background: #dbeafe;
+    }
+
+    .material {
+      align-items: flex-start;
+    }
+
+    .material-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .ai-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 20;
+    }
+
+    .ai-modal.active {
+      display: flex;
+    }
+
+    .ai-modal-box {
+      background: white;
+      width: 100%;
+      max-width: 820px;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 30px;
+      border-radius: 20px;
+      position: relative;
+    }
+
+    .ai-modal-box h2 {
+      margin-bottom: 12px;
+      color: #172554;
+    }
+
+    .ai-result {
+      white-space: pre-wrap;
+      line-height: 1.7;
+      color: #334155;
+      background: #f8fafc;
+      padding: 20px;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .ai-loading {
+      color: #2563eb;
+      font-weight: 700;
+      padding: 20px 0;
+    }
+
+    @media (max-width: 700px) {
+      .material-right {
+        width: 100%;
+        align-items: flex-start;
+      }
+    }
   </style>
 </head>
 
@@ -328,10 +414,10 @@
     <div class="nav-right">
       <span class="user-email" id="userEmail"></span>
       <button class="login-btn" id="authButton">
-        Sign in
+        Войти
       </button>
       <button class="logout-btn" id="logoutButton" style="display:none;">
-        Log out
+        Выйти
       </button>
     </div>
   </nav>
@@ -341,17 +427,17 @@
     <div class="fish">🐟</div>
 
     <h1>
-      Study smarter with <span>StudyFish</span>
+      Учись эффективнее с <span>StudyFish</span>
     </h1>
 
     <p>
-      Upload your study materials and turn them into
-      summaries, quizzes, flashcards and podcasts with AI.
+      Загружай учебные материалы и превращай их в
+      конспекты, тесты, карточки и подкасты с помощью ИИ.
     </p>
 
     <div class="upload-box">
 
-      <h2>Upload your material</h2>
+      <h2>Загрузи учебный материал</h2>
 
       <p>
         PDF, DOC, DOCX or TXT
@@ -360,7 +446,7 @@
       <label for="fileInput">
         <button class="upload-btn" type="button"
           onclick="document.getElementById('fileInput').click()">
-          📁 Choose file
+          📁 Выбрать файл
         </button>
       </label>
 
@@ -371,7 +457,7 @@
       >
 
       <div class="status" id="uploadStatus">
-        Sign in to upload your materials.
+        Войти to upload your materials.
       </div>
 
     </div>
@@ -383,33 +469,33 @@
 
     <div class="feature">
       <div class="feature-icon">📝</div>
-      <h3>Summary</h3>
+      <h3>Конспект</h3>
       <p>
-        Turn long study materials into clear summaries.
+        Превращай большие учебные материалы в понятные конспекты.
       </p>
     </div>
 
     <div class="feature">
       <div class="feature-icon">🧠</div>
-      <h3>Quiz</h3>
+      <h3>Тест</h3>
       <p>
-        Test your knowledge with AI-generated questions.
+        Проверяй знания с помощью вопросов, созданных ИИ.
       </p>
     </div>
 
     <div class="feature">
       <div class="feature-icon">🃏</div>
-      <h3>Flashcards</h3>
+      <h3>Карточки</h3>
       <p>
-        Create smart flashcards for faster memorization.
+        Создавай умные карточки для быстрого запоминания.
       </p>
     </div>
 
     <div class="feature">
       <div class="feature-icon">🎧</div>
-      <h3>Podcast</h3>
+      <h3>Подкаст</h3>
       <p>
-        Listen to your study material as an AI podcast.
+        Слушай учебный материал в формате AI-подкаста.
       </p>
     </div>
 
@@ -418,11 +504,11 @@
 
   <section class="materials">
 
-    <h2>Your materials</h2>
+    <h2>Мои материалы</h2>
 
     <div id="materialsList">
       <div class="empty">
-        Sign in to see your materials.
+        Войти to see your materials.
       </div>
     </div>
 
@@ -440,11 +526,11 @@
       </button>
 
       <h2 id="authTitle">
-        Sign in
+        Войти
       </h2>
 
       <p class="modal-subtitle" id="authSubtitle">
-        Welcome back to StudyFish.
+        С возвращением в StudyFish.
       </p>
 
       <input
@@ -458,20 +544,20 @@
         class="form-input"
         id="passwordInput"
         type="password"
-        placeholder="Password"
+        placeholder="Пароль"
       >
 
       <button class="auth-submit" id="authSubmit">
-        Sign in
+        Войти
       </button>
 
       <div class="switch-auth">
         <span id="switchText">
-          Don't have an account?
+          Нет аккаунта?
         </span>
 
         <button id="switchAuth">
-          Sign up
+          Регистрация
         </button>
       </div>
 
@@ -560,6 +646,27 @@
   const materialsList =
     document.getElementById("materialsList");
 
+  const aiModal = document.getElementById("aiModal");
+  const closeAiModal = document.getElementById("closeAiModal");
+  const aiTitle = document.getElementById("aiTitle");
+  const aiContent = document.getElementById("aiContent");
+
+  if (window.pdfjsLib) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+
+  closeAiModal.addEventListener("click", () => {
+    aiModal.classList.remove("active");
+  });
+
+  aiModal.addEventListener("click", (event) => {
+    if (event.target === aiModal) {
+      aiModal.classList.remove("active");
+    }
+  });
+
+
 
   let isSignUp = false;
 
@@ -585,35 +692,35 @@
 
     if (isSignUp) {
 
-      authTitle.textContent = "Create account";
+      authTitle.textContent = "Создать аккаунт";
 
       authSubtitle.textContent =
-        "Create your StudyFish account.";
+        "Создай аккаунт StudyFish.";
 
       authSubmit.textContent =
-        "Sign up";
+        "Регистрация";
 
       switchText.textContent =
-        "Already have an account?";
+        "Уже есть аккаунт?";
 
       switchAuth.textContent =
-        "Sign in";
+        "Войти";
 
     } else {
 
-      authTitle.textContent = "Sign in";
+      authTitle.textContent = "Войти";
 
       authSubtitle.textContent =
-        "Welcome back to StudyFish.";
+        "С возвращением в StudyFish.";
 
       authSubmit.textContent =
-        "Sign in";
+        "Войти";
 
       switchText.textContent =
-        "Don't have an account?";
+        "Нет аккаунта?";
 
       switchAuth.textContent =
-        "Sign up";
+        "Регистрация";
     }
 
     authStatus.textContent = "";
@@ -635,13 +742,13 @@
     if (!email || !password) {
 
       authStatus.textContent =
-        "Please enter email and password.";
+        "Введи email и пароль.";
 
       return;
     }
 
     authStatus.textContent =
-      "Please wait...";
+      "Подожди...";
 
     if (isSignUp) {
 
@@ -662,7 +769,7 @@
       if (!data.session) {
 
         authStatus.textContent =
-          "Account created! Check your email to confirm your account.";
+          "Аккаунт создан! Проверь почту, чтобы подтвердить аккаунт.";
 
         return;
       }
@@ -726,7 +833,7 @@
         user.email;
 
       uploadStatus.textContent =
-        "Choose a file to upload.";
+        "Выбери файл для загрузки.";
 
       loadMaterials();
 
@@ -741,10 +848,10 @@
       userEmail.textContent = "";
 
       uploadStatus.textContent =
-        "Sign in to upload your materials.";
+        "Войти to upload your materials.";
 
       materialsList.innerHTML =
-        '<div class="empty">Sign in to see your materials.</div>';
+        '<div class="empty">Войти to see your materials.</div>';
     }
   }
 
@@ -786,7 +893,7 @@
       if (!user) {
 
         uploadStatus.textContent =
-          "Please sign in first.";
+          "Сначала войди в аккаунт.";
 
         authModal.classList.add("active");
 
@@ -795,7 +902,7 @@
 
 
       uploadStatus.textContent =
-        "Uploading " + file.name + "...";
+        "Загрузка " + file.name + "...";
 
 
       const safeName =
@@ -831,7 +938,7 @@
         console.error(uploadError);
 
         uploadStatus.textContent =
-          "Upload failed: " +
+          "Ошибка загрузки: " +
           uploadError.message;
 
         return;
@@ -864,14 +971,14 @@
         console.error(dbError);
 
         uploadStatus.textContent =
-          "File uploaded, but database record failed.";
+          "Файл загружен, но запись в базе данных не создана.";
 
         return;
       }
 
 
       uploadStatus.textContent =
-        "✅ " + file.name + " uploaded successfully!";
+        "✅ " + file.name + " успешно загружен!";
 
 
       fileInput.value = "";
@@ -919,7 +1026,7 @@
       console.error(error);
 
       materialsList.innerHTML =
-        '<div class="empty">Could not load materials.</div>';
+        '<div class="empty">Не удалось загрузить материалы.</div>';
 
       return;
     }
@@ -928,7 +1035,7 @@
     if (!data || data.length === 0) {
 
       materialsList.innerHTML =
-        '<div class="empty">You have no uploaded materials yet.</div>';
+        '<div class="empty">У тебя пока нет загруженных материалов.</div>';
 
       return;
     }
@@ -937,81 +1044,208 @@
     materialsList.innerHTML = "";
 
 
-    data.forEach((document) => {
-
-      const item =
-        document.createElement
-          ? document.createElement("div")
-          : null;
-
-    });
-
-
     data.forEach((doc) => {
+      const item = window.document.createElement("div");
+      item.className = "material";
 
-      const item =
-        window.document.createElement("div");
+      const info = window.document.createElement("div");
 
-      item.className =
-        "material";
+      const name = window.document.createElement("div");
+      name.className = "material-name";
+      name.textContent = "📄 " + doc.file_name;
 
+      const type = window.document.createElement("div");
+      type.className = "material-type";
+      type.textContent = doc.file_type || "Документ";
 
-      const info =
-        window.document.createElement("div");
+      const actions = window.document.createElement("div");
+      actions.className = "material-actions";
 
-
-      const name =
-        window.document.createElement("div");
-
-      name.className =
-        "material-name";
-
-      name.textContent =
-        "📄 " + doc.file_name;
-
-
-      const type =
-        window.document.createElement("div");
-
-      type.className =
-        "material-type";
-
-      type.textContent =
-        doc.file_type || "Document";
-
-
-      info.appendChild(name);
-
-      info.appendChild(type);
-
-
-      const deleteButton =
-        window.document.createElement("button");
-
-      deleteButton.className =
-        "delete-btn";
-
-      deleteButton.textContent =
-        "Delete";
-
-
-      deleteButton.addEventListener(
-        "click",
-        () => deleteMaterial(doc)
+      const summaryButton = window.document.createElement("button");
+      summaryButton.className = "ai-btn";
+      summaryButton.textContent = "📝 Конспект";
+      summaryButton.addEventListener("click", () =>
+        generateAI(doc, "summary")
       );
 
+      const quizButton = window.document.createElement("button");
+      quizButton.className = "ai-btn";
+      quizButton.textContent = "🧠 Тест";
+      quizButton.addEventListener("click", () =>
+        generateAI(doc, "quiz")
+      );
 
+      const flashcardsButton = window.document.createElement("button");
+      flashcardsButton.className = "ai-btn";
+      flashcardsButton.textContent = "🃏 Карточки";
+      flashcardsButton.addEventListener("click", () =>
+        generateAI(doc, "flashcards")
+      );
+
+      actions.appendChild(summaryButton);
+      actions.appendChild(quizButton);
+      actions.appendChild(flashcardsButton);
+
+      info.appendChild(name);
+      info.appendChild(type);
+      info.appendChild(actions);
+
+      const right = window.document.createElement("div");
+      right.className = "material-right";
+
+      const deleteButton = window.document.createElement("button");
+      deleteButton.className = "delete-btn";
+      deleteButton.textContent = "Удалить";
+      deleteButton.addEventListener("click", () => deleteMaterial(doc));
+
+      right.appendChild(deleteButton);
       item.appendChild(info);
-
-      item.appendChild(deleteButton);
-
-
+      item.appendChild(right);
       materialsList.appendChild(item);
-
     });
 
   }
 
+
+
+  /* ==============================
+     AI STUDY TOOLS
+  ============================== */
+
+  async function downloadMaterial(doc) {
+    const { data, error } = await supabaseClient.storage
+      .from("documents")
+      .download(doc.storage_path);
+
+    if (error) {
+      throw new Error("Не удалось скачать материал: " + error.message);
+    }
+
+    return data;
+  }
+
+  async function extractTextFromFile(file, fileName) {
+    const lower = fileName.toLowerCase();
+
+    if (lower.endsWith(".txt")) {
+      return await file.text();
+    }
+
+    if (lower.endsWith(".docx")) {
+      if (!window.mammoth) {
+        throw new Error("Не загрузился модуль для чтения DOCX.");
+      }
+
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await window.mammoth.extractRawText({
+        arrayBuffer
+      });
+
+      return result.value;
+    }
+
+    if (lower.endsWith(".pdf")) {
+      if (!window.pdfjsLib) {
+        throw new Error("Не загрузился модуль для чтения PDF.");
+      }
+
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await window.pdfjsLib.getDocument({
+        data: arrayBuffer
+      }).promise;
+
+      let text = "";
+
+      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+        const page = await pdf.getPage(pageNumber);
+        const content = await page.getTextContent();
+
+        text += content.items
+          .map(item => item.str)
+          .join(" ") + "\n\n";
+      }
+
+      return text;
+    }
+
+    if (lower.endsWith(".doc")) {
+      throw new Error(
+        "Формат DOC пока не поддерживается для AI. Сохрани файл как DOCX или PDF."
+      );
+    }
+
+    throw new Error("Этот формат файла пока не поддерживается.");
+  }
+
+  async function generateAI(doc, type) {
+    const titles = {
+      summary: "📝 Конспект",
+      quiz: "🧠 Тест",
+      flashcards: "🃏 Карточки"
+    };
+
+    aiTitle.textContent = titles[type] || "🤖 StudyFish AI";
+    aiContent.className = "ai-loading";
+    aiContent.textContent = "🐟 StudyFish читает материал и готовит ответ...";
+    aiModal.classList.add("active");
+
+    try {
+      const file = await downloadMaterial(doc);
+      let text = await extractTextFromFile(file, doc.file_name);
+
+      text = text.trim();
+
+      if (!text) {
+        throw new Error("Не удалось найти текст в этом файле.");
+      }
+
+      // Ограничиваем размер запроса, чтобы большие документы обрабатывались стабильнее.
+      const maxChars = 120000;
+      if (text.length > maxChars) {
+        text = text.slice(0, maxChars);
+      }
+
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          type,
+          text
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Не удалось получить ответ от AI.");
+      }
+
+      aiContent.className = "ai-result";
+      aiContent.textContent = data.result || "AI не вернул результат.";
+
+      // Сохраняем результат в Supabase.
+      const {
+        data: { user }
+      } = await supabaseClient.auth.getUser();
+
+      if (user && data.result) {
+        await supabaseClient.from("study_results").insert({
+          user_id: user.id,
+          document_id: doc.id,
+          result_type: type,
+          content: data.result
+        });
+      }
+
+    } catch (error) {
+      console.error(error);
+      aiContent.className = "ai-result";
+      aiContent.textContent =
+        "Не удалось обработать материал.\n\n" + error.message;
+    }
+  }
 
   /* ==============================
      DELETE MATERIAL
@@ -1021,7 +1255,7 @@
 
     const confirmed =
       confirm(
-        "Delete " +
+        "Удалить " +
         doc.file_name +
         "?"
       );
@@ -1044,7 +1278,7 @@
     if (storageError) {
 
       alert(
-        "Could not delete file: " +
+        "Не удалось удалить файл: " +
         storageError.message
       );
 
@@ -1064,7 +1298,7 @@
     if (dbError) {
 
       alert(
-        "File deleted, but database record could not be deleted."
+        "Файл удалён, но запись в базе данных не удалось удалить."
       );
 
       return;
@@ -1083,6 +1317,15 @@
   updateAuthUI();
 
 </script>
+
+  <!-- AI RESULT MODAL -->
+  <div class="ai-modal" id="aiModal">
+    <div class="ai-modal-box">
+      <button class="close" id="closeAiModal">×</button>
+      <h2 id="aiTitle">Результат</h2>
+      <div id="aiContent" class="ai-result">Подожди...</div>
+    </div>
+  </div>
 
 </body>
 </html>
