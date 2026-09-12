@@ -3,122 +3,316 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StudyFish</title>
+
+  <title>StudyFish — AI Study Assistant</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
 
     body {
-      margin: 0;
       font-family: Arial, sans-serif;
-      background: #f4fbff;
-      color: #173b56;
+      background: #f4f8ff;
+      color: #172554;
     }
 
-    .navbar {
-      height: 70px;
+    nav {
+      height: 72px;
       background: white;
-      border-bottom: 1px solid #dceef7;
+      border-bottom: 1px solid #e5e7eb;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 40px;
+      padding: 0 7%;
     }
 
     .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 22px;
-      font-weight: bold;
-      color: #176da5;
+      font-size: 25px;
+      font-weight: 800;
+      color: #2563eb;
     }
 
-    .fish {
-      font-size: 32px;
+    .logo span {
+      color: #f59e0b;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-email {
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      border-radius: 12px;
+      padding: 11px 18px;
+      font-size: 14px;
+    }
+
+    .login-btn {
+      background: #2563eb;
+      color: white;
+    }
+
+    .logout-btn {
+      background: #eff6ff;
+      color: #2563eb;
     }
 
     .hero {
-      max-width: 1100px;
-      margin: 80px auto;
-      padding: 60px;
-      background: linear-gradient(135deg, #dff5ff, #ffffff);
-      border-radius: 30px;
       text-align: center;
+      padding: 80px 20px 45px;
+    }
+
+    .fish {
+      font-size: 72px;
+      margin-bottom: 18px;
     }
 
     .hero h1 {
       font-size: 52px;
-      margin: 0 0 20px;
+      margin-bottom: 18px;
+      color: #172554;
+    }
+
+    .hero h1 span {
+      color: #2563eb;
     }
 
     .hero p {
       max-width: 650px;
-      margin: 0 auto 30px;
+      margin: auto;
       font-size: 18px;
       line-height: 1.6;
-      color: #668399;
+      color: #64748b;
     }
 
-    .upload {
-      display: inline-block;
-      padding: 15px 24px;
-      background: #176da5;
+    .upload-box {
+      max-width: 760px;
+      margin: 35px auto;
+      background: white;
+      border: 2px dashed #93c5fd;
+      border-radius: 22px;
+      padding: 38px;
+      text-align: center;
+      box-shadow: 0 12px 30px rgba(37, 99, 235, 0.08);
+    }
+
+    .upload-box h2 {
+      margin-bottom: 10px;
+    }
+
+    .upload-box p {
+      color: #64748b;
+      margin-bottom: 22px;
+    }
+
+    .upload-btn {
+      background: #2563eb;
       color: white;
-      border-radius: 12px;
-      cursor: pointer;
-      font-weight: bold;
+      padding: 14px 26px;
+      font-size: 16px;
     }
 
-    .upload input {
+    .upload-btn:hover,
+    .login-btn:hover {
+      background: #1d4ed8;
+    }
+
+    input[type="file"] {
       display: none;
     }
 
-    .features {
-      max-width: 1100px;
-      margin: 0 auto 80px;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 18px;
+    .status {
+      margin-top: 18px;
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    .materials {
+      max-width: 900px;
+      margin: 45px auto 80px;
       padding: 0 20px;
     }
 
-    .card {
-      background: white;
-      border: 1px solid #dceef7;
-      border-radius: 18px;
-      padding: 25px;
+    .materials h2 {
+      margin-bottom: 18px;
     }
 
-    .card-icon {
-      font-size: 30px;
+    .material {
+      background: white;
+      border-radius: 15px;
+      padding: 18px 20px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid #e5e7eb;
+    }
+
+    .material-name {
+      font-weight: 700;
+    }
+
+    .material-type {
+      color: #64748b;
+      font-size: 13px;
+      margin-top: 5px;
+    }
+
+    .delete-btn {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .empty {
+      color: #64748b;
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+    }
+
+    .features {
+      max-width: 1050px;
+      margin: 0 auto 80px;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .feature {
+      background: white;
+      padding: 25px;
+      border-radius: 18px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .feature-icon {
+      font-size: 32px;
       margin-bottom: 15px;
     }
 
-    .card h3 {
-      margin: 0 0 8px;
+    .feature h3 {
+      margin-bottom: 8px;
     }
 
-    .card p {
-      color: #71899a;
+    .feature p {
+      color: #64748b;
       line-height: 1.5;
       font-size: 14px;
     }
 
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-box {
+      background: white;
+      width: 100%;
+      max-width: 420px;
+      padding: 30px;
+      border-radius: 20px;
+      position: relative;
+    }
+
+    .close {
+      position: absolute;
+      right: 18px;
+      top: 15px;
+      background: none;
+      font-size: 24px;
+      color: #64748b;
+    }
+
+    .modal-box h2 {
+      margin-bottom: 8px;
+    }
+
+    .modal-subtitle {
+      color: #64748b;
+      font-size: 14px;
+      margin-bottom: 22px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 13px;
+      margin-bottom: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 15px;
+    }
+
+    .auth-submit {
+      width: 100%;
+      background: #2563eb;
+      color: white;
+      margin-top: 5px;
+    }
+
+    .switch-auth {
+      text-align: center;
+      margin-top: 18px;
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .switch-auth button {
+      padding: 0;
+      background: none;
+      color: #2563eb;
+    }
+
     @media (max-width: 800px) {
       .features {
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .hero {
-        margin: 30px 15px;
-        padding: 40px 20px;
+        grid-template-columns: repeat(2, 1fr);
       }
 
       .hero h1 {
-        font-size: 38px;
+        font-size: 40px;
+      }
+
+      .user-email {
+        display: none;
+      }
+    }
+
+    @media (max-width: 500px) {
+      .features {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        padding: 0 20px;
+      }
+
+      .material {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
       }
     }
   </style>
@@ -126,87 +320,769 @@
 
 <body>
 
-  <nav class="navbar">
+  <nav>
     <div class="logo">
-      <span class="fish">🐟</span>
-      StudyFish
+      Study<span>Fish</span> 🐟
     </div>
 
-    <div>
-      Your AI Study Companion
+    <div class="nav-right">
+      <span class="user-email" id="userEmail"></span>
+      <button class="login-btn" id="authButton">
+        Sign in
+      </button>
+      <button class="logout-btn" id="logoutButton" style="display:none;">
+        Log out
+      </button>
     </div>
   </nav>
 
   <section class="hero">
 
-    <div style="font-size: 80px;">
-      🐠
-    </div>
+    <div class="fish">🐟</div>
 
     <h1>
-      Learn smarter with StudyFish
+      Study smarter with <span>StudyFish</span>
     </h1>
 
     <p>
-      Upload your study material and turn it into summaries,
-      quizzes, flashcards, podcasts and answers.
+      Upload your study materials and turn them into
+      summaries, quizzes, flashcards and podcasts with AI.
     </p>
 
-    <label class="upload">
-      📄 Upload your material
-      <input type="file">
-    </label>
+    <div class="upload-box">
+
+      <h2>Upload your material</h2>
+
+      <p>
+        PDF, DOC, DOCX or TXT
+      </p>
+
+      <label for="fileInput">
+        <button class="upload-btn" type="button"
+          onclick="document.getElementById('fileInput').click()">
+          📁 Choose file
+        </button>
+      </label>
+
+      <input
+        id="fileInput"
+        type="file"
+        accept=".pdf,.doc,.docx,.txt"
+      >
+
+      <div class="status" id="uploadStatus">
+        Sign in to upload your materials.
+      </div>
+
+    </div>
 
   </section>
+
 
   <section class="features">
 
-    <div class="card">
-      <div class="card-icon">✨</div>
+    <div class="feature">
+      <div class="feature-icon">📝</div>
       <h3>Summary</h3>
       <p>
-        Turn long documents into clear, easy-to-understand summaries.
+        Turn long study materials into clear summaries.
       </p>
     </div>
 
-    <div class="card">
-      <div class="card-icon">🧠</div>
+    <div class="feature">
+      <div class="feature-icon">🧠</div>
       <h3>Quiz</h3>
       <p>
-        Test yourself with AI-generated questions.
+        Test your knowledge with AI-generated questions.
       </p>
     </div>
 
-    <div class="card">
-      <div class="card-icon">🃏</div>
+    <div class="feature">
+      <div class="feature-icon">🃏</div>
       <h3>Flashcards</h3>
       <p>
-        Memorize important concepts with smart flashcards.
+        Create smart flashcards for faster memorization.
       </p>
     </div>
 
-    <div class="card">
-      <div class="card-icon">🎙️</div>
+    <div class="feature">
+      <div class="feature-icon">🎧</div>
       <h3>Podcast</h3>
       <p>
-        Turn your study material into an educational podcast.
+        Listen to your study material as an AI podcast.
       </p>
     </div>
 
   </section>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <section class="materials">
+
+    <h2>Your materials</h2>
+
+    <div id="materialsList">
+      <div class="empty">
+        Sign in to see your materials.
+      </div>
+    </div>
+
+  </section>
+
+
+  <!-- AUTH MODAL -->
+
+  <div class="modal" id="authModal">
+
+    <div class="modal-box">
+
+      <button class="close" id="closeModal">
+        ×
+      </button>
+
+      <h2 id="authTitle">
+        Sign in
+      </h2>
+
+      <p class="modal-subtitle" id="authSubtitle">
+        Welcome back to StudyFish.
+      </p>
+
+      <input
+        class="form-input"
+        id="emailInput"
+        type="email"
+        placeholder="Email"
+      >
+
+      <input
+        class="form-input"
+        id="passwordInput"
+        type="password"
+        placeholder="Password"
+      >
+
+      <button class="auth-submit" id="authSubmit">
+        Sign in
+      </button>
+
+      <div class="switch-auth">
+        <span id="switchText">
+          Don't have an account?
+        </span>
+
+        <button id="switchAuth">
+          Sign up
+        </button>
+      </div>
+
+      <div class="status" id="authStatus"></div>
+
+    </div>
+
+  </div>
+
 
 <script>
-  const SUPABASE_URL = "https://skgujqnfmzaunpdrattg.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_nBSqoQDivThmH5ZXG9ze3A_8v00QXqZ";
 
-  const supabaseClient = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
+  /* ==============================
+     SUPABASE
+  ============================== */
+
+  const SUPABASE_URL =
+    "https://skgujqnfmzaunpdrattg.supabase.co";
+
+  /*
+    IMPORTANT:
+    Replace the text below with your Supabase
+    publishable key — the same key you already
+    used in your previous version of index.html.
+  */
+
+  const SUPABASE_KEY =
+    "sb_publishable_nBSqoQDivThmH5ZXG9ze3A_8v00QXqZ";
+
+  const supabaseClient =
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+
+
+  /* ==============================
+     ELEMENTS
+  ============================== */
+
+  const authButton =
+    document.getElementById("authButton");
+
+  const logoutButton =
+    document.getElementById("logoutButton");
+
+  const authModal =
+    document.getElementById("authModal");
+
+  const closeModal =
+    document.getElementById("closeModal");
+
+  const authTitle =
+    document.getElementById("authTitle");
+
+  const authSubtitle =
+    document.getElementById("authSubtitle");
+
+  const authSubmit =
+    document.getElementById("authSubmit");
+
+  const switchAuth =
+    document.getElementById("switchAuth");
+
+  const switchText =
+    document.getElementById("switchText");
+
+  const emailInput =
+    document.getElementById("emailInput");
+
+  const passwordInput =
+    document.getElementById("passwordInput");
+
+  const authStatus =
+    document.getElementById("authStatus");
+
+  const userEmail =
+    document.getElementById("userEmail");
+
+  const fileInput =
+    document.getElementById("fileInput");
+
+  const uploadStatus =
+    document.getElementById("uploadStatus");
+
+  const materialsList =
+    document.getElementById("materialsList");
+
+
+  let isSignUp = false;
+
+
+  /* ==============================
+     AUTH MODAL
+  ============================== */
+
+  authButton.addEventListener("click", () => {
+    authModal.classList.add("active");
+  });
+
+
+  closeModal.addEventListener("click", () => {
+    authModal.classList.remove("active");
+    authStatus.textContent = "";
+  });
+
+
+  switchAuth.addEventListener("click", () => {
+
+    isSignUp = !isSignUp;
+
+    if (isSignUp) {
+
+      authTitle.textContent = "Create account";
+
+      authSubtitle.textContent =
+        "Create your StudyFish account.";
+
+      authSubmit.textContent =
+        "Sign up";
+
+      switchText.textContent =
+        "Already have an account?";
+
+      switchAuth.textContent =
+        "Sign in";
+
+    } else {
+
+      authTitle.textContent = "Sign in";
+
+      authSubtitle.textContent =
+        "Welcome back to StudyFish.";
+
+      authSubmit.textContent =
+        "Sign in";
+
+      switchText.textContent =
+        "Don't have an account?";
+
+      switchAuth.textContent =
+        "Sign up";
+    }
+
+    authStatus.textContent = "";
+  });
+
+
+  /* ==============================
+     SIGN UP / SIGN IN
+  ============================== */
+
+  authSubmit.addEventListener("click", async () => {
+
+    const email =
+      emailInput.value.trim();
+
+    const password =
+      passwordInput.value;
+
+    if (!email || !password) {
+
+      authStatus.textContent =
+        "Please enter email and password.";
+
+      return;
+    }
+
+    authStatus.textContent =
+      "Please wait...";
+
+    if (isSignUp) {
+
+      const { data, error } =
+        await supabaseClient.auth.signUp({
+          email,
+          password
+        });
+
+      if (error) {
+
+        authStatus.textContent =
+          error.message;
+
+        return;
+      }
+
+      if (!data.session) {
+
+        authStatus.textContent =
+          "Account created! Check your email to confirm your account.";
+
+        return;
+      }
+
+    } else {
+
+      const { error } =
+        await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
+
+      if (error) {
+
+        authStatus.textContent =
+          error.message;
+
+        return;
+      }
+    }
+
+    authModal.classList.remove("active");
+
+    emailInput.value = "";
+    passwordInput.value = "";
+    authStatus.textContent = "";
+
+  });
+
+
+  /* ==============================
+     LOG OUT
+  ============================== */
+
+  logoutButton.addEventListener("click", async () => {
+
+    await supabaseClient.auth.signOut();
+
+  });
+
+
+  /* ==============================
+     UPDATE UI
+  ============================== */
+
+  async function updateAuthUI() {
+
+    const {
+      data: {
+        user
+      }
+    } = await supabaseClient.auth.getUser();
+
+    if (user) {
+
+      authButton.style.display = "none";
+
+      logoutButton.style.display = "block";
+
+      userEmail.textContent =
+        user.email;
+
+      uploadStatus.textContent =
+        "Choose a file to upload.";
+
+      loadMaterials();
+
+    } else {
+
+      authButton.style.display =
+        "block";
+
+      logoutButton.style.display =
+        "none";
+
+      userEmail.textContent = "";
+
+      uploadStatus.textContent =
+        "Sign in to upload your materials.";
+
+      materialsList.innerHTML =
+        '<div class="empty">Sign in to see your materials.</div>';
+    }
+  }
+
+
+  /* ==============================
+     AUTH STATE
+  ============================== */
+
+  supabaseClient.auth.onAuthStateChange(
+    async () => {
+
+      await updateAuthUI();
+
+    }
   );
 
-  console.log("StudyFish connected to Supabase!");
+
+  /* ==============================
+     UPLOAD FILE
+  ============================== */
+
+  fileInput.addEventListener(
+    "change",
+    async (event) => {
+
+      const file =
+        event.target.files[0];
+
+      if (!file) return;
+
+
+      const {
+        data: {
+          user
+        }
+      } = await supabaseClient.auth.getUser();
+
+
+      if (!user) {
+
+        uploadStatus.textContent =
+          "Please sign in first.";
+
+        authModal.classList.add("active");
+
+        return;
+      }
+
+
+      uploadStatus.textContent =
+        "Uploading " + file.name + "...";
+
+
+      const safeName =
+        file.name
+          .replace(/[^a-zA-Z0-9._-]/g, "_");
+
+
+      const filePath =
+        user.id +
+        "/" +
+        Date.now() +
+        "-" +
+        safeName;
+
+
+      const {
+        error: uploadError
+      } =
+        await supabaseClient.storage
+          .from("documents")
+          .upload(
+            filePath,
+            file,
+            {
+              cacheControl: "3600",
+              upsert: false
+            }
+          );
+
+
+      if (uploadError) {
+
+        console.error(uploadError);
+
+        uploadStatus.textContent =
+          "Upload failed: " +
+          uploadError.message;
+
+        return;
+      }
+
+
+      const {
+        error: dbError
+      } =
+        await supabaseClient
+          .from("documents")
+          .insert({
+
+            user_id: user.id,
+
+            file_name:
+              file.name,
+
+            storage_path:
+              filePath,
+
+            file_type:
+              file.type || "unknown"
+
+          });
+
+
+      if (dbError) {
+
+        console.error(dbError);
+
+        uploadStatus.textContent =
+          "File uploaded, but database record failed.";
+
+        return;
+      }
+
+
+      uploadStatus.textContent =
+        "✅ " + file.name + " uploaded successfully!";
+
+
+      fileInput.value = "";
+
+      loadMaterials();
+
+    }
+  );
+
+
+  /* ==============================
+     LOAD MATERIALS
+  ============================== */
+
+  async function loadMaterials() {
+
+    const {
+      data: {
+        user
+      }
+    } = await supabaseClient.auth.getUser();
+
+
+    if (!user) return;
+
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from("documents")
+        .select("*")
+        .eq("user_id", user.id)
+        .order(
+          "created_at",
+          {
+            ascending: false
+          }
+        );
+
+
+    if (error) {
+
+      console.error(error);
+
+      materialsList.innerHTML =
+        '<div class="empty">Could not load materials.</div>';
+
+      return;
+    }
+
+
+    if (!data || data.length === 0) {
+
+      materialsList.innerHTML =
+        '<div class="empty">You have no uploaded materials yet.</div>';
+
+      return;
+    }
+
+
+    materialsList.innerHTML = "";
+
+
+    data.forEach((document) => {
+
+      const item =
+        document.createElement
+          ? document.createElement("div")
+          : null;
+
+    });
+
+
+    data.forEach((doc) => {
+
+      const item =
+        window.document.createElement("div");
+
+      item.className =
+        "material";
+
+
+      const info =
+        window.document.createElement("div");
+
+
+      const name =
+        window.document.createElement("div");
+
+      name.className =
+        "material-name";
+
+      name.textContent =
+        "📄 " + doc.file_name;
+
+
+      const type =
+        window.document.createElement("div");
+
+      type.className =
+        "material-type";
+
+      type.textContent =
+        doc.file_type || "Document";
+
+
+      info.appendChild(name);
+
+      info.appendChild(type);
+
+
+      const deleteButton =
+        window.document.createElement("button");
+
+      deleteButton.className =
+        "delete-btn";
+
+      deleteButton.textContent =
+        "Delete";
+
+
+      deleteButton.addEventListener(
+        "click",
+        () => deleteMaterial(doc)
+      );
+
+
+      item.appendChild(info);
+
+      item.appendChild(deleteButton);
+
+
+      materialsList.appendChild(item);
+
+    });
+
+  }
+
+
+  /* ==============================
+     DELETE MATERIAL
+  ============================== */
+
+  async function deleteMaterial(doc) {
+
+    const confirmed =
+      confirm(
+        "Delete " +
+        doc.file_name +
+        "?"
+      );
+
+
+    if (!confirmed) return;
+
+
+    const {
+      error: storageError
+    } =
+      await supabaseClient
+        .storage
+        .from("documents")
+        .remove([
+          doc.storage_path
+        ]);
+
+
+    if (storageError) {
+
+      alert(
+        "Could not delete file: " +
+        storageError.message
+      );
+
+      return;
+    }
+
+
+    const {
+      error: dbError
+    } =
+      await supabaseClient
+        .from("documents")
+        .delete()
+        .eq("id", doc.id);
+
+
+    if (dbError) {
+
+      alert(
+        "File deleted, but database record could not be deleted."
+      );
+
+      return;
+    }
+
+
+    loadMaterials();
+
+  }
+
+
+  /* ==============================
+     START
+  ============================== */
+
+  updateAuthUI();
+
 </script>
+
 </body>
 </html>
