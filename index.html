@@ -195,5 +195,18 @@
 
   </section>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+  const SUPABASE_URL = "https://skgujqnfmzaunpdrattg.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_nBSqoQDivThmH5ZXG9ze3A_8v00QXqZ";
+
+  const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+  console.log("StudyFish connected to Supabase!");
+</script>
 </body>
 </html>
