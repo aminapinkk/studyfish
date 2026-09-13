@@ -2227,7 +2227,7 @@
 
   /* ==============================
      FREE LOCAL FALLBACK
-     Работает даже когда OpenAI временно недоступен.
+     Работает даже когда бесплатный Gemini временно недоступен.
   ============================== */
 
   function localCleanText(text) {
@@ -3227,7 +3227,7 @@
     aiTitle.textContent = "🎧 Бесплатный подкаст";
     aiContent.className = "ai-loading";
     aiContent.textContent =
-      "🐟 StudyFish читает учебный материал прямо в браузере. Это бесплатно и не использует OpenAI API.";
+      "🐟 StudyFish читает учебный материал прямо в браузере. Это бесплатно и не требует OpenAI API.";
     aiModal.classList.add("active");
 
     try {
@@ -3373,7 +3373,7 @@
     const subtitle = window.document.createElement("div");
     subtitle.className = "podcast-subtitle";
     subtitle.textContent =
-      "Озвучка работает прямо в браузере — без OpenAI API, без оплаты и без API-ключа.";
+      "Озвучка работает прямо в браузере — без платного AI, без оплаты и без API-ключа.";
 
     const controls = window.document.createElement("div");
     controls.style.display = "grid";
