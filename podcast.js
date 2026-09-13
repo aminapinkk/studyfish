@@ -1,0 +1,2460 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="%232563eb"/><text x="32" y="46" text-anchor="middle" font-size="42">🐟</text></svg>'
+    />
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>StudyFish — AI-помощник для учёбы</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f8ff;
+      color: #172554;
+    }
+
+    nav {
+      height: 72px;
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 7%;
+    }
+
+    .logo {
+      font-size: 25px;
+      font-weight: 800;
+      color: #2563eb;
+    }
+
+    .logo span {
+      color: #f59e0b;
+    }
+
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-email {
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      border-radius: 12px;
+      padding: 11px 18px;
+      font-size: 14px;
+    }
+
+    .login-btn {
+      background: #2563eb;
+      color: white;
+    }
+
+    .logout-btn {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+
+    .hero {
+      text-align: center;
+      padding: 80px 20px 45px;
+    }
+
+    .fish {
+      font-size: 72px;
+      margin-bottom: 18px;
+    }
+
+    .hero h1 {
+      font-size: 52px;
+      margin-bottom: 18px;
+      color: #172554;
+    }
+
+    .hero h1 span {
+      color: #2563eb;
+    }
+
+    .hero p {
+      max-width: 650px;
+      margin: auto;
+      font-size: 18px;
+      line-height: 1.6;
+      color: #64748b;
+    }
+
+    .upload-box {
+      max-width: 760px;
+      margin: 35px auto;
+      background: white;
+      border: 2px dashed #93c5fd;
+      border-radius: 22px;
+      padding: 38px;
+      text-align: center;
+      box-shadow: 0 12px 30px rgba(37, 99, 235, 0.08);
+    }
+
+    .upload-box h2 {
+      margin-bottom: 10px;
+    }
+
+    .upload-box p {
+      color: #64748b;
+      margin-bottom: 22px;
+    }
+
+    .upload-btn {
+      background: #2563eb;
+      color: white;
+      padding: 14px 26px;
+      font-size: 16px;
+    }
+
+    .upload-btn:hover,
+    .login-btn:hover {
+      background: #1d4ed8;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .status {
+      margin-top: 18px;
+      font-size: 14px;
+      color: #64748b;
+    }
+
+    .materials {
+      max-width: 900px;
+      margin: 45px auto 80px;
+      padding: 0 20px;
+    }
+
+    .materials h2 {
+      margin-bottom: 18px;
+    }
+
+    .material {
+      background: white;
+      border-radius: 15px;
+      padding: 18px 20px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid #e5e7eb;
+    }
+
+    .material-name {
+      font-weight: 700;
+    }
+
+    .material-type {
+      color: #64748b;
+      font-size: 13px;
+      margin-top: 5px;
+    }
+
+    .delete-btn {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .empty {
+      color: #64748b;
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+    }
+
+    .features {
+      max-width: 1050px;
+      margin: 0 auto 80px;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .feature {
+      background: white;
+      padding: 25px;
+      border-radius: 18px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .feature-icon {
+      font-size: 32px;
+      margin-bottom: 15px;
+    }
+
+    .feature h3 {
+      margin-bottom: 8px;
+    }
+
+    .feature p {
+      color: #64748b;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.55);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal.active {
+      display: flex;
+    }
+
+    .modal-box {
+      background: white;
+      width: 100%;
+      max-width: 420px;
+      padding: 30px;
+      border-radius: 20px;
+      position: relative;
+    }
+
+    .close {
+      position: absolute;
+      right: 18px;
+      top: 15px;
+      background: none;
+      font-size: 24px;
+      color: #64748b;
+    }
+
+    .modal-box h2 {
+      margin-bottom: 8px;
+    }
+
+    .modal-subtitle {
+      color: #64748b;
+      font-size: 14px;
+      margin-bottom: 22px;
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 13px;
+      margin-bottom: 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      font-size: 15px;
+    }
+
+    .auth-submit {
+      width: 100%;
+      background: #2563eb;
+      color: white;
+      margin-top: 5px;
+    }
+
+    .switch-auth {
+      text-align: center;
+      margin-top: 18px;
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .switch-auth button {
+      padding: 0;
+      background: none;
+      color: #2563eb;
+    }
+
+    @media (max-width: 800px) {
+      .features {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .hero h1 {
+        font-size: 40px;
+      }
+
+      .user-email {
+        display: none;
+      }
+    }
+
+    @media (max-width: 500px) {
+      .features {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        padding: 0 20px;
+      }
+
+      .material {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+    }
+
+    .material-actions {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .ai-btn {
+      background: #eff6ff;
+      color: #2563eb;
+      padding: 8px 11px;
+      font-size: 12px;
+      border: 1px solid #bfdbfe;
+    }
+
+    .ai-btn:hover {
+      background: #dbeafe;
+    }
+
+    .material {
+      align-items: flex-start;
+    }
+
+    .material-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .ai-modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 20;
+    }
+
+    .ai-modal.active {
+      display: flex;
+    }
+
+    .ai-modal-box {
+      background: white;
+      width: 100%;
+      max-width: 820px;
+      max-height: 85vh;
+      overflow-y: auto;
+      padding: 30px;
+      border-radius: 20px;
+      position: relative;
+    }
+
+    .ai-modal-box h2 {
+      margin-bottom: 12px;
+      color: #172554;
+    }
+
+    .ai-result {
+      white-space: pre-wrap;
+      line-height: 1.7;
+      color: #334155;
+      background: #f8fafc;
+      padding: 20px;
+      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .ai-loading {
+      color: #2563eb;
+      font-weight: 700;
+      padding: 20px 0;
+    }
+
+    .podcast-player {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .podcast-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .podcast-title {
+      font-weight: 800;
+      color: #172554;
+      margin-bottom: 6px;
+    }
+
+    .podcast-subtitle {
+      color: #64748b;
+      font-size: 14px;
+      margin-bottom: 14px;
+    }
+
+    .podcast-audio {
+      width: 100%;
+    }
+
+    .podcast-download {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .podcast-script {
+      white-space: pre-wrap;
+      line-height: 1.65;
+      color: #334155;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 14px;
+    }
+
+    @media (max-width: 700px) {
+      .material-right {
+        width: 100%;
+        align-items: flex-start;
+      }
+    }
+
+
+    .quiz-app {
+      margin-top: 18px;
+      width: 100%;
+    }
+
+    .quiz-counter {
+      text-align: center;
+      color: #64748b;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .quiz-question {
+      background: #ffffff;
+      border: 2px solid #bfdbfe;
+      border-radius: 20px;
+      padding: 24px;
+      font-size: 21px;
+      line-height: 1.45;
+      font-weight: 800;
+      color: #172554;
+      margin-bottom: 16px;
+    }
+
+    .quiz-options {
+      display: grid;
+      gap: 10px;
+    }
+
+    .quiz-option {
+      width: 100%;
+      padding: 15px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 14px;
+      background: white;
+      color: #172554;
+      text-align: left;
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1.45;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+    }
+
+    .quiz-option:hover:not(:disabled) {
+      border-color: #93c5fd;
+      transform: translateY(-1px);
+    }
+
+    .quiz-option:disabled {
+      cursor: default;
+    }
+
+    .quiz-option.correct {
+      border-color: #22c55e;
+      background: #f0fdf4;
+    }
+
+    .quiz-option.wrong {
+      border-color: #ef4444;
+      background: #fef2f2;
+    }
+
+    .quiz-feedback {
+      margin-top: 15px;
+      padding: 15px 16px;
+      border-radius: 14px;
+      line-height: 1.55;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+    }
+
+    .quiz-feedback.correct {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #166534;
+    }
+
+    .quiz-feedback.wrong {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+
+    .quiz-next {
+      width: 100%;
+      margin-top: 15px;
+      background: #2563eb;
+      color: white;
+      padding: 13px 18px;
+    }
+
+    .quiz-next:hover {
+      background: #1d4ed8;
+    }
+
+    .quiz-result {
+      text-align: center;
+      padding: 25px 10px;
+    }
+
+    .quiz-score {
+      font-size: 38px;
+      font-weight: 900;
+      color: #2563eb;
+      margin: 12px 0;
+    }
+
+    .quiz-result p {
+      color: #64748b;
+      line-height: 1.6;
+    }
+
+    .quiz-restart {
+      margin-top: 16px;
+      background: #2563eb;
+      color: white;
+    }
+
+    @media (max-width: 600px) {
+      .quiz-question {
+        font-size: 18px;
+        padding: 18px;
+      }
+
+      .quiz-option {
+        font-size: 14px;
+      }
+    }
+
+    .flashcards-app {
+      margin-top: 18px;
+    }
+
+    .flashcard-counter {
+      text-align: center;
+      color: #64748b;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .flashcard-scene {
+      width: 100%;
+      max-width: 650px;
+      height: 330px;
+      margin: 0 auto 18px;
+      perspective: 1200px;
+      cursor: pointer;
+    }
+
+    .flashcard {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.55s ease;
+    }
+
+    .flashcard.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .flashcard-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      border-radius: 22px;
+      border: 2px solid #bfdbfe;
+      background: linear-gradient(145deg, #ffffff, #eff6ff);
+      box-shadow: 0 18px 45px rgba(37, 99, 235, 0.14);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 35px;
+      text-align: center;
+    }
+
+    .flashcard-face.back {
+      transform: rotateY(180deg);
+      background: linear-gradient(145deg, #fff, #fffbeb);
+      border-color: #fcd34d;
+    }
+
+    .flashcard-label {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #2563eb;
+      margin-bottom: 18px;
+    }
+
+    .flashcard-face.back .flashcard-label {
+      color: #d97706;
+    }
+
+    .flashcard-text {
+      font-size: 24px;
+      line-height: 1.45;
+      color: #172554;
+      font-weight: 700;
+    }
+
+    .flashcard-hint {
+      text-align: center;
+      color: #64748b;
+      font-size: 13px;
+      margin-bottom: 18px;
+    }
+
+    .flashcard-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .flashcard-control {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+
+    .flashcard-control.primary {
+      background: #2563eb;
+      color: white;
+    }
+
+    .flashcard-control:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 600px) {
+      .flashcard-scene {
+        height: 360px;
+      }
+
+      .flashcard-text {
+        font-size: 20px;
+      }
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <nav>
+    <div class="logo">
+      Study<span>Fish</span> 🐟
+    </div>
+
+    <div class="nav-right">
+      <span class="user-email" id="userEmail"></span>
+      <button class="login-btn" id="authButton">
+        Войти
+      </button>
+      <button class="logout-btn" id="logoutButton" style="display:none;">
+        Выйти
+      </button>
+    </div>
+  </nav>
+
+  <section class="hero">
+
+    <div class="fish">🐟</div>
+
+    <h1>
+      Учись эффективнее с <span>StudyFish</span>
+    </h1>
+
+    <p>
+      Загружай учебные материалы и превращай их в
+      конспекты, тесты, карточки и подкасты с помощью ИИ.
+    </p>
+
+    <div class="upload-box">
+
+      <h2>Загрузи учебный материал</h2>
+
+      <p>
+        PDF, DOC, DOCX, TXT, JPG, PNG, WEBP — в том числе фото рукописных записей
+      </p>
+
+      <label for="fileInput">
+        <button class="upload-btn" type="button"
+          onclick="document.getElementById('fileInput').click()">
+          📁 Выбрать файл
+        </button>
+      </label>
+
+      <input
+        id="fileInput"
+        type="file"
+        accept=".pdf,.doc,.docx,.txt,image/jpeg,image/png,image/webp,image/gif"
+      >
+
+      <div class="status" id="uploadStatus">
+        Войди в аккаунт, чтобы загружать материалы и фото.
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <section class="features">
+
+    <div class="feature">
+      <div class="feature-icon">📝</div>
+      <h3>Конспект</h3>
+      <p>
+        Превращай большие учебные материалы в понятные конспекты.
+      </p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">🧠</div>
+      <h3>Тест</h3>
+      <p>
+        Проверяй знания с помощью вопросов, созданных ИИ.
+      </p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">🃏</div>
+      <h3>Карточки</h3>
+      <p>
+        Создавай умные карточки для быстрого запоминания.
+      </p>
+    </div>
+
+    <div class="feature">
+      <div class="feature-icon">🎧</div>
+      <h3>Подкаст</h3>
+      <p>
+        Слушай учебный материал в формате AI-подкаста.
+      </p>
+    </div>
+
+  </section>
+
+
+  <section class="materials">
+
+    <h2>Мои материалы</h2>
+
+    <div id="materialsList">
+      <div class="empty">
+        Войди в аккаунт, чтобы увидеть свои материалы.
+      </div>
+    </div>
+
+  </section>
+
+
+  <!-- AUTH MODAL -->
+
+  <div class="modal" id="authModal">
+
+    <div class="modal-box">
+
+      <button class="close" id="closeModal">
+        ×
+      </button>
+
+      <h2 id="authTitle">
+        Войти
+      </h2>
+
+      <p class="modal-subtitle" id="authSubtitle">
+        С возвращением в StudyFish.
+      </p>
+
+      <input
+        class="form-input"
+        id="emailInput"
+        type="email"
+        placeholder="Email"
+      >
+
+      <input
+        class="form-input"
+        id="passwordInput"
+        type="password"
+        placeholder="Пароль"
+      >
+
+      <button class="auth-submit" id="authSubmit">
+        Войти
+      </button>
+
+      <div class="switch-auth">
+        <span id="switchText">
+          Нет аккаунта?
+        </span>
+
+        <button id="switchAuth">
+          Регистрация
+        </button>
+      </div>
+
+      <div class="status" id="authStatus"></div>
+
+    </div>
+
+  </div>
+
+
+  <!-- AI RESULT MODAL -->
+  <div class="ai-modal" id="aiModal">
+    <div class="ai-modal-box">
+      <button class="close" id="closeAiModal">×</button>
+      <h2 id="aiTitle">Результат</h2>
+      <div id="aiContent" class="ai-result">Подожди...</div>
+    </div>
+  </div>
+
+<script>
+
+  /* ==============================
+     SUPABASE
+  ============================== */
+
+  const SUPABASE_URL =
+    "https://skgujqnfmzaunpdrattg.supabase.co";
+
+  /*
+    IMPORTANT:
+    Replace the text below with your Supabase
+    publishable key — the same key you already
+    used in your previous version of index.html.
+  */
+
+  const SUPABASE_KEY =
+    "sb_publishable_nBSqoQDivThmH5ZXG9ze3A_8v00QXqZ";
+
+  const supabaseClient =
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_KEY
+    );
+
+
+  /* ==============================
+     ELEMENTS
+  ============================== */
+
+  const authButton =
+    document.getElementById("authButton");
+
+  const logoutButton =
+    document.getElementById("logoutButton");
+
+  const authModal =
+    document.getElementById("authModal");
+
+  const closeModal =
+    document.getElementById("closeModal");
+
+  const authTitle =
+    document.getElementById("authTitle");
+
+  const authSubtitle =
+    document.getElementById("authSubtitle");
+
+  const authSubmit =
+    document.getElementById("authSubmit");
+
+  const switchAuth =
+    document.getElementById("switchAuth");
+
+  const switchText =
+    document.getElementById("switchText");
+
+  const emailInput =
+    document.getElementById("emailInput");
+
+  const passwordInput =
+    document.getElementById("passwordInput");
+
+  const authStatus =
+    document.getElementById("authStatus");
+
+  const userEmail =
+    document.getElementById("userEmail");
+
+  const fileInput =
+    document.getElementById("fileInput");
+
+  const uploadStatus =
+    document.getElementById("uploadStatus");
+
+  const materialsList =
+    document.getElementById("materialsList");
+
+  const aiModal = document.getElementById("aiModal");
+  const closeAiModal = document.getElementById("closeAiModal");
+  const aiTitle = document.getElementById("aiTitle");
+  const aiContent = document.getElementById("aiContent");
+
+  if (window.pdfjsLib) {
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  }
+
+  closeAiModal.addEventListener("click", () => {
+    aiModal.classList.remove("active");
+  });
+
+  aiModal.addEventListener("click", (event) => {
+    if (event.target === aiModal) {
+      aiModal.classList.remove("active");
+    }
+  });
+
+
+
+  let isSignUp = false;
+
+
+  /* ==============================
+     AUTH MODAL
+  ============================== */
+
+  authButton.addEventListener("click", () => {
+    authModal.classList.add("active");
+  });
+
+
+  closeModal.addEventListener("click", () => {
+    authModal.classList.remove("active");
+    authStatus.textContent = "";
+  });
+
+
+  switchAuth.addEventListener("click", () => {
+
+    isSignUp = !isSignUp;
+
+    if (isSignUp) {
+
+      authTitle.textContent = "Создать аккаунт";
+
+      authSubtitle.textContent =
+        "Создай аккаунт StudyFish.";
+
+      authSubmit.textContent =
+        "Регистрация";
+
+      switchText.textContent =
+        "Уже есть аккаунт?";
+
+      switchAuth.textContent =
+        "Войти";
+
+    } else {
+
+      authTitle.textContent = "Войти";
+
+      authSubtitle.textContent =
+        "С возвращением в StudyFish.";
+
+      authSubmit.textContent =
+        "Войти";
+
+      switchText.textContent =
+        "Нет аккаунта?";
+
+      switchAuth.textContent =
+        "Регистрация";
+    }
+
+    authStatus.textContent = "";
+  });
+
+
+  /* ==============================
+     SIGN UP / SIGN IN
+  ============================== */
+
+  authSubmit.addEventListener("click", async () => {
+
+    const email =
+      emailInput.value.trim();
+
+    const password =
+      passwordInput.value;
+
+    if (!email || !password) {
+
+      authStatus.textContent =
+        "Введи email и пароль.";
+
+      return;
+    }
+
+    authStatus.textContent =
+      "Подожди...";
+
+    if (isSignUp) {
+
+      const { data, error } =
+        await supabaseClient.auth.signUp({
+          email,
+          password
+        });
+
+      if (error) {
+
+        authStatus.textContent =
+          error.message;
+
+        return;
+      }
+
+      if (!data.session) {
+
+        authStatus.textContent =
+          "Аккаунт создан! Проверь почту, чтобы подтвердить аккаунт.";
+
+        return;
+      }
+
+    } else {
+
+      const { error } =
+        await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
+
+      if (error) {
+
+        authStatus.textContent =
+          error.message;
+
+        return;
+      }
+    }
+
+    authModal.classList.remove("active");
+
+    emailInput.value = "";
+    passwordInput.value = "";
+    authStatus.textContent = "";
+
+  });
+
+
+  /* ==============================
+     LOG OUT
+  ============================== */
+
+  logoutButton.addEventListener("click", async () => {
+
+    await supabaseClient.auth.signOut();
+
+  });
+
+
+  /* ==============================
+     UPDATE UI
+  ============================== */
+
+  async function updateAuthUI() {
+
+    const {
+      data: {
+        user
+      }
+    } = await supabaseClient.auth.getUser();
+
+    if (user) {
+
+      authButton.style.display = "none";
+
+      logoutButton.style.display = "block";
+
+      userEmail.textContent =
+        user.email;
+
+      uploadStatus.textContent =
+        "Выбери файл для загрузки.";
+
+      loadMaterials();
+
+    } else {
+
+      authButton.style.display =
+        "block";
+
+      logoutButton.style.display =
+        "none";
+
+      userEmail.textContent = "";
+
+      uploadStatus.textContent =
+        "Войти to upload your materials.";
+
+      materialsList.innerHTML =
+        '<div class="empty">Войти to see your materials.</div>';
+    }
+  }
+
+
+  /* ==============================
+     AUTH STATE
+  ============================== */
+
+  supabaseClient.auth.onAuthStateChange(
+    async () => {
+
+      await updateAuthUI();
+
+    }
+  );
+
+
+  /* ==============================
+     UPLOAD FILE
+  ============================== */
+
+  fileInput.addEventListener(
+    "change",
+    async (event) => {
+
+      const file =
+        event.target.files[0];
+
+      if (!file) return;
+
+
+      const {
+        data: {
+          user
+        }
+      } = await supabaseClient.auth.getUser();
+
+
+      if (!user) {
+
+        uploadStatus.textContent =
+          "Сначала войди в аккаунт.";
+
+        authModal.classList.add("active");
+
+        return;
+      }
+
+
+      uploadStatus.textContent =
+        "Загрузка " + file.name + "...";
+
+
+      const safeName =
+        file.name
+          .replace(/[^a-zA-Z0-9._-]/g, "_");
+
+
+      const filePath =
+        user.id +
+        "/" +
+        Date.now() +
+        "-" +
+        safeName;
+
+
+      const {
+        error: uploadError
+      } =
+        await supabaseClient.storage
+          .from("documents")
+          .upload(
+            filePath,
+            file,
+            {
+              cacheControl: "3600",
+              upsert: false
+            }
+          );
+
+
+      if (uploadError) {
+
+        console.error(uploadError);
+
+        uploadStatus.textContent =
+          "Ошибка загрузки: " +
+          uploadError.message;
+
+        return;
+      }
+
+
+      const {
+        error: dbError
+      } =
+        await supabaseClient
+          .from("documents")
+          .insert({
+
+            user_id: user.id,
+
+            file_name:
+              file.name,
+
+            storage_path:
+              filePath,
+
+            file_type:
+              file.type || "unknown"
+
+          });
+
+
+      if (dbError) {
+
+        console.error(dbError);
+
+        uploadStatus.textContent =
+          "Файл загружен, но запись в базе данных не создана.";
+
+        return;
+      }
+
+
+      uploadStatus.textContent =
+        "✅ " + file.name + " успешно загружен!";
+
+
+      fileInput.value = "";
+
+      loadMaterials();
+
+    }
+  );
+
+
+  /* ==============================
+     LOAD MATERIALS
+  ============================== */
+
+  async function loadMaterials() {
+
+    const {
+      data: {
+        user
+      }
+    } = await supabaseClient.auth.getUser();
+
+
+    if (!user) return;
+
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient
+        .from("documents")
+        .select("*")
+        .eq("user_id", user.id)
+        .order(
+          "created_at",
+          {
+            ascending: false
+          }
+        );
+
+
+    if (error) {
+
+      console.error(error);
+
+      materialsList.innerHTML =
+        '<div class="empty">Не удалось загрузить материалы.</div>';
+
+      return;
+    }
+
+
+    if (!data || data.length === 0) {
+
+      materialsList.innerHTML =
+        '<div class="empty">У тебя пока нет загруженных материалов.</div>';
+
+      return;
+    }
+
+
+    materialsList.innerHTML = "";
+
+
+    data.forEach((doc) => {
+      const item = window.document.createElement("div");
+      item.className = "material";
+
+      const info = window.document.createElement("div");
+
+      const name = window.document.createElement("div");
+      name.className = "material-name";
+      name.textContent = "📄 " + doc.file_name;
+
+      const type = window.document.createElement("div");
+      type.className = "material-type";
+      type.textContent = doc.file_type || "Документ";
+
+      const actions = window.document.createElement("div");
+      actions.className = "material-actions";
+
+      const summaryButton = window.document.createElement("button");
+      summaryButton.className = "ai-btn";
+      summaryButton.textContent = "📝 Конспект";
+      summaryButton.addEventListener("click", () =>
+        generateAI(doc, "summary")
+      );
+
+      const quizButton = window.document.createElement("button");
+      quizButton.className = "ai-btn";
+      quizButton.textContent = "🧠 Тест";
+      quizButton.addEventListener("click", () =>
+        generateAI(doc, "quiz")
+      );
+
+      const flashcardsButton = window.document.createElement("button");
+      flashcardsButton.className = "ai-btn";
+      flashcardsButton.textContent = "🃏 Карточки";
+      flashcardsButton.addEventListener("click", () =>
+        generateAI(doc, "flashcards")
+      );
+
+      const podcastButton = window.document.createElement("button");
+      podcastButton.className = "ai-btn";
+      podcastButton.textContent = "🎧 Подкаст";
+      podcastButton.addEventListener("click", () =>
+        generatePodcast(doc)
+      );
+
+      actions.appendChild(summaryButton);
+      actions.appendChild(quizButton);
+      actions.appendChild(flashcardsButton);
+      actions.appendChild(podcastButton);
+
+      info.appendChild(name);
+      info.appendChild(type);
+      info.appendChild(actions);
+
+      const right = window.document.createElement("div");
+      right.className = "material-right";
+
+      const deleteButton = window.document.createElement("button");
+      deleteButton.className = "delete-btn";
+      deleteButton.textContent = "Удалить";
+      deleteButton.addEventListener("click", () => deleteMaterial(doc));
+
+      right.appendChild(deleteButton);
+      item.appendChild(info);
+      item.appendChild(right);
+      materialsList.appendChild(item);
+    });
+
+  }
+
+
+
+  /* ==============================
+     AI STUDY TOOLS
+  ============================== */
+
+  async function downloadMaterial(doc) {
+    const { data, error } = await supabaseClient.storage
+      .from("documents")
+      .download(doc.storage_path);
+
+    if (error) {
+      throw new Error("Не удалось скачать материал: " + error.message);
+    }
+
+    return data;
+  }
+
+  async function extractTextFromFile(file, fileName) {
+    const lower = fileName.toLowerCase();
+
+    if (lower.endsWith(".txt")) {
+      return await file.text();
+    }
+
+    if (lower.endsWith(".docx")) {
+      if (!window.mammoth) {
+        throw new Error("Не загрузился модуль для чтения DOCX.");
+      }
+
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await window.mammoth.extractRawText({
+        arrayBuffer
+      });
+
+      return result.value;
+    }
+
+    if (lower.endsWith(".pdf")) {
+      if (!window.pdfjsLib) {
+        throw new Error("Не загрузился модуль для чтения PDF.");
+      }
+
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await window.pdfjsLib.getDocument({
+        data: arrayBuffer
+      }).promise;
+
+      let text = "";
+
+      for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
+        const page = await pdf.getPage(pageNumber);
+        const content = await page.getTextContent();
+
+        text += content.items
+          .map(item => item.str)
+          .join(" ") + "\n\n";
+      }
+
+      return text;
+    }
+
+    if (lower.endsWith(".doc")) {
+      throw new Error(
+        "Формат DOC пока не поддерживается для AI. Сохрани файл как DOCX или PDF."
+      );
+    }
+
+    throw new Error("Этот формат файла пока не поддерживается.");
+  }
+
+  async function generateAI(doc, type) {
+    const titles = {
+      summary: "📝 Конспект",
+      quiz: "🧠 Тест",
+      flashcards: "🃏 Карточки"
+    };
+
+    aiTitle.textContent = titles[type] || "🤖 StudyFish AI";
+    aiContent.className = "ai-loading";
+    aiContent.textContent =
+      "🐟 StudyFish читает материал и готовит ответ...";
+    aiModal.classList.add("active");
+
+    try {
+      let text = "";
+      let imageUrl = null;
+
+      const isImage =
+        (doc.file_type || "").startsWith("image/") ||
+        /\.(jpg|jpeg|png|webp|gif)$/i.test(doc.file_name || "");
+
+      if (isImage) {
+        /*
+         * ВАЖНО:
+         * Фото не превращаем в Base64 и не отправляем через Vercel.
+         * Создаём временную приватную ссылку Supabase на 5 минут.
+         * OpenAI получает изображение напрямую по этой ссылке.
+         */
+        const {
+          data: signedData,
+          error: signedError
+        } = await supabaseClient.storage
+          .from("documents")
+          .createSignedUrl(doc.storage_path, 300);
+
+        if (signedError || !signedData?.signedUrl) {
+          throw new Error(
+            "Не удалось открыть изображение: " +
+            (signedError?.message || "неизвестная ошибка")
+          );
+        }
+
+        imageUrl = signedData.signedUrl;
+
+      } else {
+        const file = await downloadMaterial(doc);
+        text = await extractTextFromFile(file, doc.file_name);
+        text = (text || "").trim();
+
+        if (!text) {
+          throw new Error(
+            "Не удалось найти текст в этом файле."
+          );
+        }
+
+        const maxChars = 120000;
+        if (text.length > maxChars) {
+          text = text.slice(0, maxChars);
+        }
+      }
+
+      const response = await fetch("/api/ai", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          type,
+          text,
+          imageUrl
+        })
+      });
+
+      const raw = await response.text();
+
+      let data = null;
+
+      try {
+        data = JSON.parse(raw);
+      } catch (parseError) {
+        console.error("Non-JSON server response:", raw);
+        throw new Error(
+          raw || "Сервер вернул некорректный ответ."
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error ||
+          "Не удалось получить ответ от AI."
+        );
+      }
+
+      /*
+       * -----------------------------
+       * ИНТЕРАКТИВНЫЙ ТЕСТ
+       * -----------------------------
+       */
+      if (type === "quiz") {
+        let questions = data.result;
+
+        if (typeof questions === "string") {
+          let cleaned = questions
+            .trim()
+            .replace(/^```json\s*/i, "")
+            .replace(/^```\s*/i, "")
+            .replace(/\s*```$/i, "")
+            .trim();
+
+          try {
+            questions = JSON.parse(cleaned);
+          } catch (parseError) {
+            const first = cleaned.indexOf("[");
+            const last = cleaned.lastIndexOf("]");
+
+            if (first !== -1 && last > first) {
+              try {
+                questions = JSON.parse(
+                  cleaned.slice(first, last + 1)
+                );
+              } catch (secondError) {
+                throw new Error(
+                  "AI вернул тест в неправильном формате."
+                );
+              }
+            } else {
+              throw new Error(
+                "AI вернул тест в неправильном формате."
+              );
+            }
+          }
+        }
+
+        if (
+          questions &&
+          !Array.isArray(questions) &&
+          Array.isArray(questions.questions)
+        ) {
+          questions = questions.questions;
+        }
+
+        if (
+          !Array.isArray(questions) ||
+          questions.length === 0
+        ) {
+          throw new Error(
+            "AI не создал вопросы для теста."
+          );
+        }
+
+        renderQuiz(questions);
+
+      /*
+       * -----------------------------
+       * ИНТЕРАКТИВНЫЕ КАРТОЧКИ
+       * -----------------------------
+       */
+      } else if (type === "flashcards") {
+        let cards = data.result;
+
+        if (typeof cards === "string") {
+          let cleaned = cards
+            .trim()
+            .replace(/^```json\s*/i, "")
+            .replace(/^```\s*/i, "")
+            .replace(/\s*```$/i, "")
+            .trim();
+
+          try {
+            cards = JSON.parse(cleaned);
+          } catch (parseError) {
+            const first = cleaned.indexOf("[");
+            const last = cleaned.lastIndexOf("]");
+
+            if (first !== -1 && last > first) {
+              try {
+                cards = JSON.parse(
+                  cleaned.slice(first, last + 1)
+                );
+              } catch (secondError) {
+                throw new Error(
+                  "AI вернул карточки в неправильном формате."
+                );
+              }
+            } else {
+              throw new Error(
+                "AI вернул карточки в неправильном формате."
+              );
+            }
+          }
+        }
+
+        if (
+          cards &&
+          !Array.isArray(cards) &&
+          Array.isArray(cards.cards)
+        ) {
+          cards = cards.cards;
+        }
+
+        if (!Array.isArray(cards) || cards.length === 0) {
+          throw new Error("AI не создал карточки.");
+        }
+
+        renderFlashcards(cards);
+
+      } else {
+        aiContent.className = "ai-result";
+        aiContent.textContent =
+          data.result ||
+          "AI не вернул результат.";
+      }
+
+      /*
+       * Сохраняем результат в Supabase.
+       */
+      const {
+        data: { user }
+      } = await supabaseClient.auth.getUser();
+
+      if (user && data.result) {
+        const { error: saveError } =
+          await supabaseClient
+            .from("study_results")
+            .insert({
+              user_id: user.id,
+              document_id: doc.id,
+              result_type: type,
+              content: data.result
+            });
+
+        if (saveError) {
+          console.warn(
+            "Не удалось сохранить результат:",
+            saveError
+          );
+        }
+      }
+
+    } catch (error) {
+      console.error("StudyFish AI error:", error);
+
+      aiContent.className = "ai-result";
+      aiContent.textContent =
+        "Не удалось обработать материал.\n\n" +
+        (error?.message ||
+          "Произошла неизвестная ошибка.");
+    }
+  }
+
+
+  /* ==============================
+     INTERACTIVE QUIZ
+  ============================== */
+
+  function renderQuiz(questions) {
+    const safeQuestions = questions
+      .filter(q =>
+        q &&
+        typeof q.question === "string" &&
+        Array.isArray(q.options)
+      )
+      .map(q => {
+        const options = q.options
+          .map(option => String(option).trim())
+          .filter(Boolean);
+
+        let correctIndex = Number.isInteger(q.correctIndex)
+          ? q.correctIndex
+          : -1;
+
+        if (
+          correctIndex < 0 ||
+          correctIndex >= options.length
+        ) {
+          if (typeof q.correctIndex === "string") {
+            const numeric = Number(q.correctIndex);
+            if (
+              Number.isInteger(numeric) &&
+              numeric >= 0 &&
+              numeric < options.length
+            ) {
+              correctIndex = numeric;
+            }
+          }
+        }
+
+        if (
+          correctIndex < 0 ||
+          correctIndex >= options.length
+        ) {
+          const candidates = [
+            q.correctAnswer,
+            q.correct,
+            q.answer
+          ];
+
+          for (const candidate of candidates) {
+            if (typeof candidate === "number") {
+              if (
+                candidate >= 0 &&
+                candidate < options.length
+              ) {
+                correctIndex = candidate;
+                break;
+              }
+
+              if (
+                candidate >= 1 &&
+                candidate <= options.length
+              ) {
+                correctIndex = candidate - 1;
+                break;
+              }
+            }
+
+            if (typeof candidate === "string") {
+              const normalized = candidate
+                .trim()
+                .toLowerCase();
+
+              const found = options.findIndex(
+                option =>
+                  option.toLowerCase() === normalized
+              );
+
+              if (found !== -1) {
+                correctIndex = found;
+                break;
+              }
+
+              const letter = normalized.match(
+                /^[a-d]$/i
+              );
+
+              if (letter) {
+                correctIndex =
+                  letter[0].toUpperCase().charCodeAt(0) -
+                  65;
+                break;
+              }
+            }
+          }
+        }
+
+        return {
+          question: q.question.trim(),
+          options,
+          correctIndex,
+          explanation:
+            typeof q.explanation === "string"
+              ? q.explanation.trim()
+              : ""
+        };
+      })
+      .filter(q =>
+        q.question &&
+        q.options.length >= 2 &&
+        q.correctIndex >= 0 &&
+        q.correctIndex < q.options.length
+      );
+
+    if (!safeQuestions.length) {
+      throw new Error(
+        "AI не вернул корректные вопросы для теста."
+      );
+    }
+
+    let current = 0;
+    let score = 0;
+    let answered = false;
+
+    aiContent.className = "quiz-app";
+    aiContent.innerHTML = "";
+
+    const counter =
+      window.document.createElement("div");
+    counter.className = "quiz-counter";
+
+    const questionBox =
+      window.document.createElement("div");
+    questionBox.className = "quiz-question";
+
+    const optionsBox =
+      window.document.createElement("div");
+    optionsBox.className = "quiz-options";
+
+    const feedback =
+      window.document.createElement("div");
+    feedback.className = "quiz-feedback";
+    feedback.style.display = "none";
+
+    const nextButton =
+      window.document.createElement("button");
+    nextButton.className = "quiz-next";
+    nextButton.type = "button";
+    nextButton.textContent =
+      "Следующий вопрос →";
+    nextButton.style.display = "none";
+
+    aiContent.appendChild(counter);
+    aiContent.appendChild(questionBox);
+    aiContent.appendChild(optionsBox);
+    aiContent.appendChild(feedback);
+    aiContent.appendChild(nextButton);
+
+    function showResult() {
+      aiContent.className = "quiz-result";
+      aiContent.innerHTML = "";
+
+      const title =
+        window.document.createElement("h2");
+      title.textContent =
+        "🎉 Тест завершён!";
+
+      const scoreText =
+        window.document.createElement("div");
+      scoreText.className = "quiz-score";
+      scoreText.textContent =
+        `${score} из ${safeQuestions.length}`;
+
+      const percent = Math.round(
+        (score / safeQuestions.length) * 100
+      );
+
+      const message =
+        window.document.createElement("p");
+
+      if (percent === 100) {
+        message.textContent =
+          "Идеально! Ты отлично знаешь материал 🐟";
+      } else if (percent >= 80) {
+        message.textContent =
+          "Отличный результат! Так держать!";
+      } else if (percent >= 60) {
+        message.textContent =
+          "Хорошо! Ещё немного практики — и будет отлично.";
+      } else {
+        message.textContent =
+          "Повтори материал и попробуй пройти тест ещё раз.";
+      }
+
+      const restart =
+        window.document.createElement("button");
+      restart.className = "quiz-restart";
+      restart.type = "button";
+      restart.textContent =
+        "Пройти ещё раз";
+
+      restart.addEventListener("click", () => {
+        current = 0;
+        score = 0;
+        answered = false;
+        aiContent.className = "quiz-app";
+        aiContent.innerHTML = "";
+
+        aiContent.appendChild(counter);
+        aiContent.appendChild(questionBox);
+        aiContent.appendChild(optionsBox);
+        aiContent.appendChild(feedback);
+        aiContent.appendChild(nextButton);
+
+        updateQuestion();
+      });
+
+      aiContent.appendChild(title);
+      aiContent.appendChild(scoreText);
+      aiContent.appendChild(message);
+      aiContent.appendChild(restart);
+    }
+
+    function updateQuestion() {
+      if (current >= safeQuestions.length) {
+        showResult();
+        return;
+      }
+
+      const item = safeQuestions[current];
+      answered = false;
+
+      counter.textContent =
+        `Вопрос ${current + 1} из ${safeQuestions.length}`;
+
+      questionBox.textContent =
+        item.question;
+
+      optionsBox.innerHTML = "";
+
+      feedback.style.display = "none";
+      feedback.className =
+        "quiz-feedback";
+
+      nextButton.style.display = "none";
+      nextButton.textContent =
+        current === safeQuestions.length - 1
+          ? "Показать результат"
+          : "Следующий вопрос →";
+
+      item.options.forEach(
+        (optionText, index) => {
+          const button =
+            window.document.createElement("button");
+
+          button.className = "quiz-option";
+          button.type = "button";
+
+          button.textContent =
+            `${String.fromCharCode(65 + index)}. ${optionText}`;
+
+          button.addEventListener("click", () => {
+            if (answered) return;
+
+            answered = true;
+
+            const allOptions =
+              Array.from(optionsBox.children);
+
+            allOptions.forEach(option => {
+              option.disabled = true;
+            });
+
+            const isCorrect =
+              index === item.correctIndex;
+
+            if (isCorrect) {
+              score++;
+              button.classList.add("correct");
+
+              feedback.className =
+                "quiz-feedback correct";
+
+              feedback.textContent =
+                "✅ Правильно!" +
+                (
+                  item.explanation
+                    ? " " + item.explanation
+                    : ""
+                );
+
+            } else {
+              button.classList.add("wrong");
+
+              const correctButton =
+                allOptions[item.correctIndex];
+
+              if (correctButton) {
+                correctButton.classList.add("correct");
+              }
+
+              feedback.className =
+                "quiz-feedback wrong";
+
+              feedback.textContent =
+                "❌ Неправильно." +
+                (
+                  item.explanation
+                    ? " " + item.explanation
+                    : ""
+                );
+            }
+
+            feedback.style.display =
+              "block";
+
+            nextButton.style.display =
+              "block";
+          });
+
+          optionsBox.appendChild(button);
+        }
+      );
+    }
+
+    nextButton.addEventListener("click", () => {
+      if (!answered) return;
+      current++;
+      updateQuestion();
+    });
+
+    updateQuestion();
+  }
+
+
+  /* ==============================
+     INTERACTIVE FLASHCARDS
+  ============================== */
+
+  function renderFlashcards(cards) {
+    const safeCards = cards
+      .filter(card =>
+        card &&
+        typeof card.question === "string" &&
+        typeof card.answer === "string"
+      )
+      .map(card => ({
+        question: card.question.trim(),
+        answer: card.answer.trim()
+      }))
+      .filter(card => card.question && card.answer);
+
+    if (!safeCards.length) {
+      throw new Error("Не найдено ни одной корректной карточки.");
+    }
+
+    let current = 0;
+    let flipped = false;
+
+    aiContent.className = "flashcards-app";
+    aiContent.innerHTML = "";
+
+    const counter = window.document.createElement("div");
+    counter.className = "flashcard-counter";
+
+    const scene = window.document.createElement("div");
+    scene.className = "flashcard-scene";
+    scene.setAttribute("role", "button");
+    scene.setAttribute("tabindex", "0");
+    scene.setAttribute("aria-label", "Нажми, чтобы перевернуть карточку");
+
+    const card = window.document.createElement("div");
+    card.className = "flashcard";
+
+    const front = window.document.createElement("div");
+    front.className = "flashcard-face front";
+
+    const frontLabel = window.document.createElement("div");
+    frontLabel.className = "flashcard-label";
+    frontLabel.textContent = "Вопрос";
+
+    const question = window.document.createElement("div");
+    question.className = "flashcard-text";
+
+    const back = window.document.createElement("div");
+    back.className = "flashcard-face back";
+
+    const backLabel = window.document.createElement("div");
+    backLabel.className = "flashcard-label";
+    backLabel.textContent = "Ответ";
+
+    const answer = window.document.createElement("div");
+    answer.className = "flashcard-text";
+
+    front.appendChild(frontLabel);
+    front.appendChild(question);
+    back.appendChild(backLabel);
+    back.appendChild(answer);
+
+    card.appendChild(front);
+    card.appendChild(back);
+    scene.appendChild(card);
+
+    const hint = window.document.createElement("div");
+    hint.className = "flashcard-hint";
+    hint.textContent = "👆 Нажми на карточку, чтобы увидеть ответ";
+
+    const controls = window.document.createElement("div");
+    controls.className = "flashcard-controls";
+
+    const previous = window.document.createElement("button");
+    previous.className = "flashcard-control";
+    previous.type = "button";
+    previous.textContent = "← Назад";
+
+    const next = window.document.createElement("button");
+    next.className = "flashcard-control primary";
+    next.type = "button";
+    next.textContent = "Дальше →";
+
+    controls.appendChild(previous);
+    controls.appendChild(next);
+
+    aiContent.appendChild(counter);
+    aiContent.appendChild(scene);
+    aiContent.appendChild(hint);
+    aiContent.appendChild(controls);
+
+    function updateCard() {
+      const item = safeCards[current];
+
+      counter.textContent =
+        `Карточка ${current + 1} из ${safeCards.length}`;
+
+      question.textContent = item.question;
+      answer.textContent = item.answer;
+
+      card.classList.toggle("flipped", flipped);
+
+      previous.disabled = current === 0;
+      next.disabled = current === safeCards.length - 1;
+
+      hint.textContent = flipped
+        ? "👆 Нажми на карточку, чтобы вернуться к вопросу"
+        : "👆 Нажми на карточку, чтобы увидеть ответ";
+    }
+
+    function flipCard() {
+      flipped = !flipped;
+      updateCard();
+    }
+
+    function goNext() {
+      if (current >= safeCards.length - 1) return;
+      current++;
+      flipped = false;
+      updateCard();
+    }
+
+    function goPrevious() {
+      if (current <= 0) return;
+      current--;
+      flipped = false;
+      updateCard();
+    }
+
+    scene.addEventListener("click", flipCard);
+
+    scene.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        flipCard();
+      }
+    });
+
+    previous.addEventListener("click", goPrevious);
+    next.addEventListener("click", goNext);
+
+    updateCard();
+  }
+
+
+  /* ==============================
+     AI PODCAST
+  ============================== */
+
+  async function generatePodcast(doc) {
+    aiTitle.textContent = "🎧 AI-подкаст";
+    aiContent.className = "ai-loading";
+    aiContent.textContent =
+      "🐟 StudyFish готовит сценарий подкаста и озвучивает его...";
+    aiModal.classList.add("active");
+
+    let audioUrl = null;
+
+    try {
+      let text = "";
+      let imageUrl = null;
+
+      const isImage =
+        (doc.file_type || "").startsWith("image/") ||
+        /\.(jpg|jpeg|png|webp|gif)$/i.test(doc.file_name || "");
+
+      if (isImage) {
+        const {
+          data: signedData,
+          error: signedError
+        } = await supabaseClient.storage
+          .from("documents")
+          .createSignedUrl(doc.storage_path, 300);
+
+        if (signedError || !signedData?.signedUrl) {
+          throw new Error(
+            "Не удалось открыть изображение: " +
+            (signedError?.message || "неизвестная ошибка")
+          );
+        }
+
+        imageUrl = signedData.signedUrl;
+      } else {
+        const file = await downloadMaterial(doc);
+        text = await extractTextFromFile(file, doc.file_name);
+        text = (text || "").trim();
+
+        if (!text) {
+          throw new Error("Не удалось найти текст в этом файле.");
+        }
+
+        if (text.length > 120000) {
+          text = text.slice(0, 120000);
+        }
+      }
+
+      const response = await fetch("/api/podcast", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text,
+          imageUrl,
+          fileName: doc.file_name || "Учебный материал"
+        })
+      });
+
+      const contentType =
+        response.headers.get("content-type") || "";
+
+      if (!response.ok) {
+        let message = "Не удалось создать подкаст.";
+        if (contentType.includes("application/json")) {
+          const data = await response.json();
+          message = data?.error || message;
+        } else {
+          const raw = await response.text();
+          if (raw) message = raw;
+        }
+        throw new Error(message);
+      }
+
+      let script = "Подкаст создан по твоему учебному материалу.";
+      const encodedScript = response.headers.get("X-StudyFish-Script");
+
+      if (encodedScript) {
+        try {
+          const bytes = Uint8Array.from(
+            atob(encodedScript),
+            char => char.charCodeAt(0)
+          );
+          script = new TextDecoder("utf-8").decode(bytes);
+        } catch (decodeError) {
+          console.warn("Не удалось прочитать сценарий из заголовка.", decodeError);
+        }
+      }
+
+      const blob = await response.blob();
+      audioUrl = URL.createObjectURL(blob);
+
+      aiContent.className = "podcast-player";
+      aiContent.innerHTML = "";
+
+      const card = window.document.createElement("div");
+      card.className = "podcast-card";
+
+      const title = window.document.createElement("div");
+      title.className = "podcast-title";
+      title.textContent = "Готово 🎧";
+
+      const subtitle = window.document.createElement("div");
+      subtitle.className = "podcast-subtitle";
+      subtitle.textContent =
+        "StudyFish превратил материал в короткий учебный аудиоподкаст.";
+
+      const audio = window.document.createElement("audio");
+      audio.className = "podcast-audio";
+      audio.controls = true;
+      audio.src = audioUrl;
+      audio.autoplay = false;
+
+      const download = window.document.createElement("a");
+      download.className = "podcast-download";
+      download.href = audioUrl;
+      download.download =
+        (doc.file_name || "studyfish-podcast")
+          .replace(/\.[^.]+$/, "") +
+        "-podcast.mp3";
+      download.textContent = "⬇️ Скачать MP3";
+
+      const scriptTitle = window.document.createElement("div");
+      scriptTitle.className = "podcast-title";
+      scriptTitle.textContent = "Сценарий";
+      scriptTitle.style.marginTop = "18px";
+
+      const scriptBox = window.document.createElement("div");
+      scriptBox.className = "podcast-script";
+      scriptBox.textContent = script;
+
+      card.appendChild(title);
+      card.appendChild(subtitle);
+      card.appendChild(audio);
+      card.appendChild(download);
+      card.appendChild(scriptTitle);
+      card.appendChild(scriptBox);
+      aiContent.appendChild(card);
+
+    } catch (error) {
+      console.error("Podcast error:", error);
+      aiContent.className = "ai-result";
+      aiContent.textContent =
+        "Не удалось создать подкаст.\n\n" +
+        (error?.message || "Неизвестная ошибка.");
+    }
+  }
+
+
+  /* ==============================
+     DELETE MATERIAL
+  ============================== */
+
+  async function deleteMaterial(doc) {
+
+    const confirmed =
+      confirm(
+        "Удалить " +
+        doc.file_name +
+        "?"
+      );
+
+
+    if (!confirmed) return;
+
+
+    const {
+      error: storageError
+    } =
+      await supabaseClient
+        .storage
+        .from("documents")
+        .remove([
+          doc.storage_path
+        ]);
+
+
+    if (storageError) {
+
+      alert(
+        "Не удалось удалить файл: " +
+        storageError.message
+      );
+
+      return;
+    }
+
+
+    const {
+      error: dbError
+    } =
+      await supabaseClient
+        .from("documents")
+        .delete()
+        .eq("id", doc.id);
+
+
+    if (dbError) {
+
+      alert(
+        "Файл удалён, но запись в базе данных не удалось удалить."
+      );
+
+      return;
+    }
+
+
+    loadMaterials();
+
+  }
+
+
+  /* ==============================
+     START
+  ============================== */
+
+  updateAuthUI();
+
+</script>
+
+</body>
+</html>
