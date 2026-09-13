@@ -1321,6 +1321,9 @@
         <button class="sf-nav-btn active" type="button" onclick="document.getElementById('studyfish-dashboard')?.scrollIntoView({behavior:'smooth'})">Главная</button>
         <button class="sf-nav-btn" type="button" onclick="document.getElementById('studyfish-materials')?.scrollIntoView({behavior:'smooth'})">Мои материалы</button>
         <button class="sf-nav-btn" type="button" onclick="document.getElementById('studyfish-history')?.scrollIntoView({behavior:'smooth'})">История</button>
+        <span class="sf-auth-user" id="userEmail"></span>
+        <button class="sf-auth-btn" id="authButton" type="button">Войти</button>
+        <button class="sf-auth-btn sf-auth-logout" id="logoutButton" type="button" style="display:none;">Выйти</button>
       </nav>
     </div>
   </header>
@@ -1363,22 +1366,6 @@
     </div>
   </main>
 
-
-  <nav>
-    <div class="logo">
-      Study<span>Fish</span> 🐟
-    </div>
-
-    <div class="nav-right">
-      <span class="user-email" id="userEmail"></span>
-      <button class="login-btn" id="authButton">
-        Войти
-      </button>
-      <button class="logout-btn" id="logoutButton" style="display:none;">
-        Выйти
-      </button>
-    </div>
-  </nav>
 
   <section class="hero">
 
@@ -2278,102 +2265,154 @@
       `ℹ️ Этот результат создан бесплатно в браузере, без запроса к ИИ.`;
   }
 
-  function buildLocalQuiz(text) {
-    const sentences = localSentences(text)
-      .filter(s => s.length >= 55 && s.length <= 280);
-
-    const source = [];
+  function localTermsAndDefinitions(text) {
+    const lines = localImportantLines(text);
+    const items = [];
     const seen = new Set();
+    const patterns = [
+      /^(.{2,70}?)\s*[—–-]\s*(.{25,220})$/,
+      /^(.{2,70}?)\s*[:]\s*(.{25,220})$/,
+      /^(?:это|это\s+есть)\s+(.{25,220})$/i
+    ];
 
-    for (const sentence of sentences) {
-      const key = sentence.toLowerCase();
-      if (!seen.has(key)) {
+    for (const line of lines) {
+      for (const re of patterns) {
+        const m = line.match(re);
+        if (!m) continue;
+        let term, definition;
+        if (re === patterns[2]) {
+          term = line.split(/\s+/).slice(0, 4).join(' ');
+          definition = m[1];
+        } else {
+          term = m[1].trim();
+          definition = m[2].trim();
+        }
+        if (term.length < 2 || definition.length < 20) continue;
+        const key = term.toLowerCase();
+        if (seen.has(key)) continue;
         seen.add(key);
-        source.push(sentence);
+        items.push({term, definition, source: line});
+        break;
       }
-      if (source.length >= 10) break;
+      if (items.length >= 12) break;
     }
+    return items;
+  }
 
-    if (!source.length) {
-      throw new Error("Для бесплатного теста в материале слишком мало текста.");
+  function localKeywords(text) {
+    const stop = new Set([
+      'это','также','которые','который','которая','которое','данный','такие',
+      'можно','если','для','при','после','перед','через','между','когда',
+      'этот','эта','эти','быть','был','была','были','есть','или','как','что',
+      'из','на','по','с','в','во','и','а','но','не','до','от','за','под'
+    ]);
+    const counts = new Map();
+    for (const w of localCleanText(text).match(/[А-ЯЁа-яёA-Za-z][А-ЯЁа-яёA-Za-z-]{4,}/g) || []) {
+      const k = w.toLowerCase();
+      if (stop.has(k)) continue;
+      counts.set(k, (counts.get(k) || 0) + 1);
     }
+    return [...counts.entries()]
+      .sort((a,b) => b[1] - a[1])
+      .map(x => x[0])
+      .slice(0, 30);
+  }
 
-    const usedAnswers = new Set();
+  function buildLocalQuiz(text) {
+    const clean = localCleanText(text);
+    const sentences = localSentences(clean).filter(s => s.length >= 55 && s.length <= 260);
+    const defs = localTermsAndDefinitions(clean);
+    const keywords = localKeywords(clean);
+    const questions = [];
+    const used = new Set();
 
-    return source.map((sentence, i) => {
-      const words = sentence.match(/[А-Яа-яЁёA-Za-z][А-Яа-яЁёA-Za-z0-9-]{4,}/g) || [];
-      const answer = [...words]
-        .sort((a, b) => b.length - a.length)
-        .find(w => !usedAnswers.has(w.toLowerCase())) || words[0] || sentence.split(/\s+/)[0];
-
-      usedAnswers.add(answer.toLowerCase());
-
-      const question = sentence.replace(answer, "□" );
-      const distractors = [];
-
-      for (const other of source) {
-        const candidates = other.match(/[А-Яа-яЁёA-Za-z][А-Яа-яЁёA-Za-z0-9-]{4,}/g) || [];
-        const candidate = [...candidates]
-          .sort((a, b) => Math.abs(a.length - answer.length) - Math.abs(b.length - answer.length))
-          .find(w => w.toLowerCase() !== answer.toLowerCase() && !distractors.some(x => x.toLowerCase() === w.toLowerCase()));
-        if (candidate) distractors.push(candidate);
-        if (distractors.length >= 3) break;
-      }
-
-      while (distractors.length < 3) {
-        const fallback = ["понятие", "пример", "свойство", "элемент"][distractors.length] || "термин";
-        if (fallback.toLowerCase() !== answer.toLowerCase()) distractors.push(fallback);
-      }
-
-      const options = [answer, ...distractors.slice(0, 3)];
-      // Перемешиваем варианты, чтобы правильный ответ не всегда был первым.
+    // Сначала делаем нормальные вопросы по определениям, а не случайные пропуски слов.
+    for (const item of defs) {
+      const distractors = keywords
+        .filter(w => w.toLowerCase() !== item.term.toLowerCase())
+        .filter(w => !item.term.toLowerCase().includes(w.toLowerCase()))
+        .slice(0, 3);
+      if (distractors.length < 3) continue;
+      const options = [item.term, ...distractors];
       for (let j = options.length - 1; j > 0; j--) {
         const k = Math.floor(Math.random() * (j + 1));
         [options[j], options[k]] = [options[k], options[j]];
       }
-
-      return {
-        question: `Вставь пропущенное слово в утверждение:
-${question}`,
+      const key = item.term.toLowerCase();
+      if (used.has(key)) continue;
+      used.add(key);
+      questions.push({
+        question: `Что означает понятие «${item.term}»?`,
         options,
-        correctIndex: options.indexOf(answer),
-        explanation: `В исходном утверждении пропущено слово «${answer}».`
-      };
-    });
+        correctIndex: options.indexOf(item.term),
+        explanation: item.definition
+      });
+      if (questions.length >= 10) break;
+    }
+
+    // Если в материале нет явных определений, используем смысловые вопросы по предложениям.
+    if (questions.length < 5) {
+      for (const sentence of sentences) {
+        const words = sentence.match(/[А-Яа-яЁёA-Za-z][А-Яа-яЁёA-Za-z0-9-]{4,}/g) || [];
+        const answer = words.sort((a,b) => b.length - a.length)[0];
+        if (!answer || used.has(answer.toLowerCase())) continue;
+        const context = sentence.replace(new RegExp(`\\b${answer.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\b`, 'i'), '□');
+        const distractors = keywords.filter(w => w.toLowerCase() !== answer.toLowerCase()).slice(0,3);
+        if (distractors.length < 3) continue;
+        const options = [answer, ...distractors];
+        for (let j = options.length - 1; j > 0; j--) {
+          const k = Math.floor(Math.random() * (j + 1));
+          [options[j], options[k]] = [options[k], options[j]];
+        }
+        used.add(answer.toLowerCase());
+        questions.push({
+          question: `Какое слово пропущено в утверждении?\n${context}`,
+          options,
+          correctIndex: options.indexOf(answer),
+          explanation: `В исходном утверждении это слово связано с указанным содержанием.`
+        });
+        if (questions.length >= 10) break;
+      }
+    }
+
+    if (!questions.length) throw new Error('Для бесплатного теста в материале слишком мало структурированного текста.');
+    return questions;
   }
 
   function buildLocalFlashcards(text) {
-    const sentences = localSentences(text)
-      .filter(s => s.length >= 45 && s.length <= 260);
-    const lines = localImportantLines(text)
-      .filter(s => s.length >= 25 && s.length <= 180);
-
-    const source = [];
+    const clean = localCleanText(text);
+    const defs = localTermsAndDefinitions(clean);
+    const sentences = localSentences(clean).filter(s => s.length >= 45 && s.length <= 260);
+    const result = [];
     const seen = new Set();
-    for (const item of [...lines, ...sentences]) {
-      const key = item.toLowerCase();
-      if (!seen.has(key)) {
-        seen.add(key);
-        source.push(item);
-      }
-      if (source.length >= 12) break;
+
+    // Приоритет — пары «термин → определение», чтобы карточки действительно учили понятиям.
+    for (const item of defs) {
+      const key = item.term.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push({
+        question: `Что такое «${item.term}»?`,
+        answer: item.definition
+      });
+      if (result.length >= 10) break;
     }
 
-    if (!source.length) {
-      throw new Error("Для бесплатных карточек в материале слишком мало текста.");
+    // Затем добавляем карточки на понимание важных утверждений.
+    for (const sentence of sentences) {
+      if (result.length >= 10) break;
+      const words = sentence.match(/[А-Яа-яЁёA-Za-z][А-Яа-яЁёA-Za-z0-9-]{5,}/g) || [];
+      const keyword = words.find(w => !seen.has(w.toLowerCase()));
+      if (!keyword) continue;
+      seen.add(keyword.toLowerCase());
+      result.push({
+        question: `Что важно запомнить об этом утверждении?\n${sentence}`,
+        answer: `Главная мысль: ${sentence}`
+      });
     }
 
-    return source.map((item, i) => {
-      const words = item.match(/[А-Яа-яЁёA-Za-z][А-Яа-яЁёA-Za-z0-9-]{4,}/g) || [];
-      const answer = [...words].sort((a, b) => b.length - a.length)[0] || "ключевой термин";
-      const front = item.replace(answer, "□");
-
-      return {
-        question: `Карточка ${i + 1}. Вспомни пропущенное слово:
-${front}`,
-        answer: answer + "\n\nПолный фрагмент: " + item
-      };
-    });
+    if (!result.length) throw new Error('Для бесплатных карточек в материале слишком мало текста.');
+    return result;
   }
 
   function showLocalFallback(type, text, reason) {
@@ -3847,6 +3886,78 @@ ${front}`,
 
 <style id="studyfish-final-polish">
 /* ===== StudyFish unified layout ===== */
+
+/* Auth controls stay visible in the main StudyFish header. */
+.sf-auth-user{
+  max-width:180px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--sf-muted);
+  font-size:12px;
+  font-weight:700;
+  margin-left:4px;
+}
+.sf-auth-btn{
+  border:1px solid #bfdbfe;
+  background:#2563eb;
+  color:#fff;
+  font:inherit;
+  font-size:13px;
+  font-weight:800;
+  padding:9px 14px;
+  border-radius:10px;
+  cursor:pointer;
+  box-shadow:0 5px 14px rgba(37,99,235,.16);
+}
+.sf-auth-btn:hover{background:#1d4ed8}
+.sf-auth-logout{background:#fff;color:#2563eb;box-shadow:none}
+.sf-auth-logout:hover{background:#eff6ff}
+
+/* Upload is the main action: make it larger and more noticeable. */
+body > .hero{margin-top:22px!important}
+.upload-box{
+  min-height:250px!important;
+  padding:38px 44px!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  align-items:center!important;
+  text-align:center!important;
+  border-radius:26px!important;
+}
+.upload-box h2{font-size:30px!important;margin:0 0 10px!important;color:var(--sf-ink)!important}
+.upload-box p{max-width:700px!important;font-size:15px!important;line-height:1.55!important}
+.upload-btn{font-size:16px!important;padding:14px 24px!important;border-radius:13px!important}
+.upload-box .status{margin-top:12px!important}
+
+/* Keep secondary dashboard content compact. */
+.sf-hero{padding:22px 28px!important;margin-bottom:18px!important}
+.sf-hero h1{font-size:clamp(24px,3vw,34px)!important}
+.sf-hero p{font-size:14px!important}
+.sf-hero-fish{width:92px!important;height:92px!important;font-size:48px!important;border-radius:28px!important}
+.sf-section{margin-top:18px!important}
+.sf-section-head{margin-bottom:10px!important}
+.sf-section-head h2{font-size:19px!important}
+.sf-dashboard-grid{gap:10px!important}
+.sf-dashboard-card{padding:14px!important;border-radius:15px!important}
+.sf-dashboard-icon{width:36px!important;height:36px!important;font-size:18px!important;margin-bottom:8px!important}
+.sf-dashboard-card strong{font-size:14px!important}
+.sf-dashboard-card small{font-size:12px!important}
+.materials{margin-top:26px!important}
+#studyfish-achievements{margin-top:22px!important}
+#studyfish-history{margin-top:24px!important}
+
+@media(max-width:700px){
+  .sf-topbar-inner{align-items:center!important}
+  .sf-auth-user{display:none}
+  .sf-auth-btn{padding:8px 11px!important;font-size:12px!important}
+  .upload-box{min-height:230px!important;padding:30px 18px!important}
+  .upload-box h2{font-size:25px!important}
+  .upload-box p{font-size:14px!important}
+  .upload-btn{width:auto!important;min-width:190px!important}
+}
+
 .sf-main{padding-bottom:8px}
 .sf-shell{max-width:1120px}
 .sf-hero{box-shadow:0 18px 45px rgba(37,99,235,.08)}
@@ -3861,6 +3972,25 @@ body > .hero > h1,
 body > .hero > p{display:none!important}
 .upload-box{margin:0!important;border:1px solid var(--sf-border)!important;border-radius:22px!important;box-shadow:0 14px 35px rgba(15,23,42,.06)!important;background:#fff!important}
 .upload-box h2{margin-top:0}
+
+/* Align legacy materials + new sections to one centered content column. */
+.materials{
+  width:min(1120px, calc(100% - 32px))!important;
+  max-width:none!important;
+  box-sizing:border-box!important;
+  margin:34px auto 30px!important;
+  padding:0!important;
+}
+#studyfish-achievements,
+#studyfish-history{
+  width:min(1120px, calc(100% - 32px));
+  max-width:none;
+  box-sizing:border-box;
+  margin-left:auto!important;
+  margin-right:auto!important;
+}
+#studyfish-achievements{margin-top:28px!important}
+#studyfish-history{margin-top:30px!important}
 
 /* Unified history */
 .sf-history-section{margin-top:0}
@@ -3884,7 +4014,9 @@ body > .hero > p{display:none!important}
   .sf-hero{padding:24px 18px!important;border-radius:22px!important}
   .sf-hero h1{font-size:29px!important}
   .sf-dashboard-grid{grid-template-columns:1fr!important}
-  body > .hero{padding:0 12px!important;margin:8px auto 0!important}
+  body > .hero{padding:0!important;margin:8px auto 0!important}
+  .materials{width:calc(100% - 24px)!important;margin:28px auto 24px!important;padding:0!important}
+  #studyfish-achievements,#studyfish-history{width:calc(100% - 24px)!important}
   .upload-box{padding:20px 16px!important}
   .sf-section{margin-top:18px!important}
   .sf-section-head{gap:8px!important;align-items:flex-start!important}
