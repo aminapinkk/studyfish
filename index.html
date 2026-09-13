@@ -1499,6 +1499,7 @@
           <button class="sf-history-filter" data-filter="quiz" type="button">🧠 Тесты</button>
           <button class="sf-history-filter" data-filter="flashcards" type="button">🃏 Карточки</button>
           <button class="sf-history-filter" data-filter="podcast" type="button">🎧 Подкасты</button>
+          <button class="sf-history-clear" id="studyfish-history-clear" type="button">🗑 Очистить</button>
         </div>
         <div class="sf-history" id="studyfish-history-list">
           <div class="sf-empty">История появится после первого действия.</div>
@@ -2320,73 +2321,84 @@
 
   function buildLocalQuiz(text) {
     const clean = localCleanText(text);
-    const sentences = localSentences(clean).filter(s => s.length >= 55 && s.length <= 260);
+    const sentences = localSentences(clean).filter(s => s.length >= 45 && s.length <= 280);
     const defs = localTermsAndDefinitions(clean);
-    const keywords = localKeywords(clean);
     const questions = [];
     const used = new Set();
 
-    // Сначала делаем нормальные вопросы по определениям, а не случайные пропуски слов.
-    for (const item of defs) {
-      const distractors = keywords
-        .filter(w => w.toLowerCase() !== item.term.toLowerCase())
-        .filter(w => !item.term.toLowerCase().includes(w.toLowerCase()))
-        .slice(0, 3);
-      if (distractors.length < 3) continue;
-      const options = [item.term, ...distractors];
-      for (let j = options.length - 1; j > 0; j--) {
-        const k = Math.floor(Math.random() * (j + 1));
-        [options[j], options[k]] = [options[k], options[j]];
-      }
-      const key = item.term.toLowerCase();
-      if (used.has(key)) continue;
-      used.add(key);
-      questions.push({
-        question: `Что означает понятие «${item.term}»?`,
-        options,
-        correctIndex: options.indexOf(item.term),
-        explanation: item.definition
-      });
-      if (questions.length >= 10) break;
-    }
+    // Бесплатный режим должен строить тест из СМЫСЛА материала.
+    // Сначала используем пары «термин → определение» и перемешиваем
+    // определения других терминов как правдоподобные варианты ответа.
+    if (defs.length >= 4) {
+      for (let i = 0; i < defs.length && questions.length < 10; i++) {
+        const item = defs[i];
+        const key = item.term.toLowerCase();
+        if (used.has(key)) continue;
 
-    // Если в материале нет явных определений, используем смысловые вопросы по предложениям.
-    if (questions.length < 5) {
-      for (const sentence of sentences) {
-        const words = sentence.match(/[А-Яа-яЁёA-Za-z][А-Яа-яЁёA-Za-z0-9-]{4,}/g) || [];
-        const answer = words.sort((a,b) => b.length - a.length)[0];
-        if (!answer || used.has(answer.toLowerCase())) continue;
-        const context = sentence.replace(new RegExp(`\\b${answer.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}\\b`, 'i'), '□');
-        const distractors = keywords.filter(w => w.toLowerCase() !== answer.toLowerCase()).slice(0,3);
-        if (distractors.length < 3) continue;
-        const options = [answer, ...distractors];
+        const others = defs
+          .filter((x, idx) => idx !== i && x.term.toLowerCase() !== key)
+          .slice(0, 3)
+          .map(x => x.definition);
+
+        if (others.length < 3) continue;
+        const options = [item.definition, ...others];
         for (let j = options.length - 1; j > 0; j--) {
           const k = Math.floor(Math.random() * (j + 1));
           [options[j], options[k]] = [options[k], options[j]];
         }
-        used.add(answer.toLowerCase());
+        used.add(key);
         questions.push({
-          question: `Какое слово пропущено в утверждении?\n${context}`,
+          question: `Что такое «${item.term}»?`,
           options,
-          correctIndex: options.indexOf(answer),
-          explanation: `В исходном утверждении это слово связано с указанным содержанием.`
+          correctIndex: options.indexOf(item.definition),
+          explanation: `В материале «${item.term}» определяется так: ${item.definition}`
         });
-        if (questions.length >= 10) break;
       }
     }
 
-    if (!questions.length) throw new Error('Для бесплатного теста в материале слишком мало структурированного текста.');
-    return questions;
+    // Второй уровень: вопросы на понимание конкретных утверждений.
+    // Варианты берутся из самого материала, а не генерируются случайными словами.
+    for (const sentence of sentences) {
+      if (questions.length >= 10) break;
+      const words = sentence.match(/[А-ЯЁа-яёA-Za-z][А-ЯЁа-яёA-Za-z0-9-]{3,}/g) || [];
+      const anchor = words.find(w => w.length >= 5);
+      if (!anchor) continue;
+      const key = `sentence:${sentence.toLowerCase()}`;
+      if (used.has(key)) continue;
+
+      const alternatives = sentences
+        .filter(x => x !== sentence && !x.toLowerCase().includes(anchor.toLowerCase()))
+        .slice(0, 3);
+      if (alternatives.length < 3) continue;
+
+      const options = [sentence, ...alternatives];
+      for (let j = options.length - 1; j > 0; j--) {
+        const k = Math.floor(Math.random() * (j + 1));
+        [options[j], options[k]] = [options[k], options[j]];
+      }
+      used.add(key);
+      questions.push({
+        question: `Какое утверждение точно описывает «${anchor}»?`,
+        options,
+        correctIndex: options.indexOf(sentence),
+        explanation: `Это утверждение напрямую содержит «${anchor}» и взято из учебного материала.`
+      });
+    }
+
+    if (!questions.length) {
+      throw new Error('В материале недостаточно структурированного текста для качественного теста.');
+    }
+    return questions.slice(0, 10);
   }
 
   function buildLocalFlashcards(text) {
     const clean = localCleanText(text);
     const defs = localTermsAndDefinitions(clean);
-    const sentences = localSentences(clean).filter(s => s.length >= 45 && s.length <= 260);
+    const sentences = localSentences(clean).filter(s => s.length >= 45 && s.length <= 280);
     const result = [];
     const seen = new Set();
 
-    // Приоритет — пары «термин → определение», чтобы карточки действительно учили понятиям.
+    // Карточки прежде всего строятся как реальные пары «термин → определение».
     for (const item of defs) {
       const key = item.term.toLowerCase();
       if (seen.has(key)) continue;
@@ -2398,21 +2410,26 @@
       if (result.length >= 10) break;
     }
 
-    // Затем добавляем карточки на понимание важных утверждений.
+    // Если определений мало, добавляем карточки по главным законченным утверждениям.
+    // Не вырезаем случайные слова и не подменяем содержание.
     for (const sentence of sentences) {
       if (result.length >= 10) break;
-      const words = sentence.match(/[А-Яа-яЁёA-Za-z][А-Яа-яЁёA-Za-z0-9-]{5,}/g) || [];
-      const keyword = words.find(w => !seen.has(w.toLowerCase()));
-      if (!keyword) continue;
-      seen.add(keyword.toLowerCase());
+      const key = sentence.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const words = sentence.match(/[А-ЯЁа-яёA-Za-z][А-ЯЁа-яёA-Za-z0-9-]{4,}/g) || [];
+      const topic = words.find(w => !/^(это|также|которые|который|можно|если|для|при|после|перед|через|между|когда)$/i.test(w)) || 'этой темы';
       result.push({
-        question: `Что важно запомнить об этом утверждении?\n${sentence}`,
-        answer: `Главная мысль: ${sentence}`
+        question: `Что нужно запомнить о «${topic}»?`,
+        answer: sentence
       });
     }
 
-    if (!result.length) throw new Error('Для бесплатных карточек в материале слишком мало текста.');
-    return result;
+    if (!result.length) {
+      throw new Error('В материале недостаточно текста для создания карточек.');
+    }
+    return result.slice(0, 10);
   }
 
   function showLocalFallback(type, text, reason) {
@@ -3643,7 +3660,7 @@
     try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; }
   }
   function writeLocal(items) {
-    localStorage.setItem(KEY, JSON.stringify(items.slice(0, 100)));
+    localStorage.setItem(KEY, JSON.stringify(items.slice(0, 5)));
   }
   function label(type) {
     return {summary:"Конспект",quiz:"Тест",flashcards:"Карточки",podcast:"Подкаст"}[type] || "Материал";
@@ -3667,7 +3684,7 @@
       list.innerHTML='<div class="sf-empty">Здесь пока ничего нет. Открой конспект, тест, карточки или подкаст.</div>';
       return;
     }
-    list.innerHTML=filtered.slice(0,30).map(x=>{
+    list.innerHTML=filtered.slice(0,5).map(x=>{
       const d=new Date(x.created_at);
       const date=isNaN(d) ? "" : d.toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
       const score=x.score!=null && x.total ? `<span class="sf-history-pill sf-history-score">${esc(x.score)}/${esc(x.total)}</span>` : "";
@@ -3688,7 +3705,7 @@
       const {data:authData}=await supabaseClient.auth.getUser();
       const user=authData?.user;
       if(!user) return [];
-      const {data,error}=await supabaseClient.from("study_results").select("id,document_id,result_type,created_at,content").eq("user_id",user.id).order("created_at",{ascending:false}).limit(50);
+      const {data,error}=await supabaseClient.from("study_results").select("id,document_id,result_type,created_at,content").eq("user_id",user.id).order("created_at",{ascending:false}).limit(20);
       if(error) throw error;
       let docs={};
       const ids=[...new Set((data||[]).map(x=>x.document_id).filter(Boolean))];
@@ -3705,9 +3722,10 @@
     render(local);
     const remote=await loadFromSupabase();
     if(remote.length){
-      const merged=[...remote,...local];
+      const merged=[...remote,...local]
+        .sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
       const seen=new Set();
-      const unique=merged.filter(x=>{const k=`${x.type}|${x.name}|${x.created_at?.slice(0,16)}`;if(seen.has(k))return false;seen.add(k);return true;});
+      const unique=merged.filter(x=>{const k=`${x.type}|${x.name}|${x.created_at?.slice(0,16)}`;if(seen.has(k))return false;seen.add(k);return true;}).slice(0,5);
       writeLocal(unique);
       render(unique);
     }
@@ -3718,6 +3736,20 @@
       document.querySelectorAll(".sf-history-filter").forEach(b=>b.classList.remove("active"));
       btn.classList.add("active"); activeFilter=btn.dataset.filter||"all"; render(readLocal());
     }));
+
+    const clearBtn=document.getElementById("studyfish-history-clear");
+    if(clearBtn) clearBtn.addEventListener("click", async ()=>{
+      if(!confirm("Очистить историю обучения? Это удалит историю для этого аккаунта.")) return;
+      localStorage.removeItem(KEY);
+      try {
+        if(typeof supabaseClient !== "undefined") {
+          const {data:authData}=await supabaseClient.auth.getUser();
+          const user=authData?.user;
+          if(user) await supabaseClient.from("study_results").delete().eq("user_id",user.id);
+        }
+      } catch(e) { console.warn("History clear:",e); }
+      render([]);
+    });
     refresh();
     setTimeout(refresh,1500);
   });
@@ -4027,5 +4059,32 @@ body > .hero > p{display:none!important}
 }
 </style>
 
+
+<style id="studyfish-layout-history-fix">
+/* Большая центральная зона загрузки */
+body > .hero{width:min(1120px,calc(100% - 32px))!important;margin:34px auto 0!important;}
+body > .hero .upload-box{width:min(820px,100%)!important;min-height:330px!important;margin:0 auto!important;padding:54px 46px!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;text-align:center!important;box-sizing:border-box!important;}
+body > .hero .upload-box h2{font-size:32px!important;margin:0 0 12px!important;}
+body > .hero .upload-box p{max-width:650px!important;font-size:15px!important;line-height:1.6!important;margin:0 auto 24px!important;}
+body > .hero .upload-btn{min-width:230px!important;min-height:50px!important;font-size:15px!important;}
+/* Остальные блоки компактнее и одинаковой ширины */
+.materials,#studyfish-achievements,#studyfish-history{width:min(960px,calc(100% - 32px))!important;}
+.materials{margin-top:30px!important;margin-bottom:24px!important;}
+#studyfish-achievements{margin-top:24px!important;}
+#studyfish-history{margin-top:24px!important;}
+#studyfish-achievements .sf-fish-customizer{padding:18px!important;}
+#studyfish-achievements .sf-achievement{padding:12px!important;}
+.sf-history-clear{border:1px solid #fecaca!important;background:#fff5f5!important;color:#dc2626!important;border-radius:10px!important;padding:8px 11px!important;font-size:12px!important;font-weight:800!important;cursor:pointer!important;margin-left:auto!important;}
+.sf-history-toolbar{align-items:center!important;}
+@media(max-width:700px){
+  body > .hero{width:calc(100% - 24px)!important;margin-top:20px!important;}
+  body > .hero .upload-box{min-height:280px!important;padding:34px 18px!important;}
+  body > .hero .upload-box h2{font-size:26px!important;}
+  body > .hero .upload-box p{font-size:13px!important;}
+  body > .hero .upload-btn{min-width:200px!important;}
+  .materials,#studyfish-achievements,#studyfish-history{width:calc(100% - 24px)!important;}
+  .sf-history-clear{margin-left:0!important;}
+}
+</style>
 </body>
 </html>
