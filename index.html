@@ -2295,42 +2295,53 @@
     const lines = localImportantLines(text);
     const items = [];
     const seen = new Set();
-    const badStarts = /^(основы|содержание|урок|тема|задание|практическая работа|самостоятельная работа|информатика|введение|заключение|пример|примеры|вопросы|ответы)\b/i;
 
-    for (const line of lines) {
-      const normalized = line.replace(/\s+/g, " ").trim();
-      if (normalized.length < 25 || normalized.length > 280) continue;
+    // Служебные строки документа не должны становиться учебными понятиями.
+    const badTerm = /^(преподаватель|учитель|автор|составитель|ф\.\s*и\.\s*о\.?|фио|класс|предмет|дата|урок|тема|содержание|задание|практическая работа|самостоятельная работа|информатика|введение|заключение|пример|примеры|вопросы|ответы)\b/i;
+    const badDefinitionEnd = /\b(в|на|с|со|для|от|из|к|ко|по|и|или|что|как|при|без|над|под|между|через|о|об|у)$/i;
+    const badDefinition = /^(сушенцева|анастасия|андреевна|преподаватель|учитель|автор)\b/i;
+
+    function add(term, definition, source) {
+      term = String(term || '').replace(/\s+/g, ' ').trim();
+      definition = String(definition || '').replace(/\s+/g, ' ').trim();
+      if (!term || !definition) return;
+
+      const termWords = term.split(/\s+/).filter(Boolean);
+      if (termWords.length > 6 || term.length > 55) return;
+      if (term.length < 2 || definition.length < 28 || definition.length > 260) return;
+      if (badTerm.test(term) || badDefinition.test(definition)) return;
+      if (badDefinitionEnd.test(definition.replace(/[.!?;:]+$/, '').trim())) return;
+      if (/^[\d\W_]+$/.test(term)) return;
+      if (/^(это|также|которые|который|которая|данный|можно|если|для|при)\b/i.test(term)) return;
+      if (/\b(преподаватель|сушенцева|анастасия|андреевна)\b/i.test(`${term} ${definition}`)) return;
+
+      const key = term.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      items.push({ term, definition, source });
+    }
+
+    for (const rawLine of lines) {
+      const normalized = rawLine.replace(/\s+/g, ' ').trim();
+      if (normalized.length < 30 || normalized.length > 300) continue;
       if (/^[0-9]+[.)]\s/.test(normalized)) continue;
 
+      // Варианты: «Термин — определение», «Термин: определение» и «Термин — это определение».
       const patterns = [
-        /^(.{2,65}?)\s*[—–]\s*(.{25,220})$/,
-        /^(.{2,65}?)\s*:\s*(.{25,220})$/,
-        /^(.{2,65}?)\s+—\s+это\s+(.{20,220})$/i
+        /^(.{2,55}?)\s+—\s+это\s+(.{28,240})$/i,
+        /^(.{2,55}?)\s*[—–]\s*(.{28,240})$/,
+        /^(.{2,55}?)\s*:\s*(.{28,240})$/
       ];
 
       for (const re of patterns) {
         const m = normalized.match(re);
         if (!m) continue;
-
-        const term = m[1].trim();
-        const definition = m[2].trim();
-        const termWords = term.split(/\s+/).filter(Boolean);
-
-        // Не превращаем заголовки страниц и длинные названия уроков в термины.
-        if (termWords.length > 8 || term.length > 60) continue;
-        if (badStarts.test(term)) continue;
-        if (/[.!?]{2,}/.test(term)) continue;
-        if (definition.length < 20) continue;
-
-        const key = term.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
-        items.push({ term, definition, source: normalized });
+        add(m[1], m[2], normalized);
         break;
       }
-      if (items.length >= 12) break;
     }
-    return items;
+
+    return items.slice(0, 20);
   }
 
   function localKeywords(text) {
@@ -2355,22 +2366,22 @@
   function buildLocalQuiz(text) {
     const clean = localCleanText(text);
     const defs = localTermsAndDefinitions(clean);
-    const sentences = localSentences(clean)
-      .filter(s => s.length >= 55 && s.length <= 240)
-      .filter(s => !/^основы\s+html/i.test(s));
     const questions = [];
-    const used = new Set();
+    const usedTerms = new Set();
 
-    // Сначала — самые надёжные вопросы «термин → определение».
+    // Бесплатный режим строит тест только из действительно найденных
+    // пар «понятие → определение». Это лучше, чем превращать случайные
+    // предложения или данные преподавателя в вопросы.
     for (let i = 0; i < defs.length && questions.length < 10; i++) {
       const item = defs[i];
       const key = item.term.toLowerCase();
-      if (used.has(key)) continue;
+      if (usedTerms.has(key)) continue;
 
       const distractors = defs
         .filter((x, idx) => idx !== i && x.term.toLowerCase() !== key)
         .map(x => x.definition)
-        .filter((value, idx, arr) => arr.indexOf(value) === idx)
+        .filter(x => x && x.length >= 28 && x.length <= 260)
+        .filter((x, idx, arr) => arr.indexOf(x) === idx)
         .slice(0, 3);
 
       if (distractors.length < 3) continue;
@@ -2381,59 +2392,28 @@
         [options[j], options[k]] = [options[k], options[j]];
       }
 
-      used.add(key);
+      usedTerms.add(key);
       questions.push({
         question: `Что означает понятие «${item.term}»?`,
         options,
         correctIndex: options.indexOf(item.definition),
-        explanation: item.definition
-      });
-    }
-
-    // Если в документе мало явных определений, используем только законченные
-    // содержательные предложения. Вопрос не маскирует случайное слово.
-    for (let i = 0; i < sentences.length && questions.length < 10; i++) {
-      const sentence = sentences[i];
-      const key = sentence.toLowerCase();
-      if (used.has(key)) continue;
-
-      const alternatives = sentences
-        .filter((x, idx) => idx !== i && x.toLowerCase() !== key)
-        .filter(x => Math.abs(x.length - sentence.length) < 110)
-        .slice(0, 3);
-      if (alternatives.length < 3) continue;
-
-      const options = [sentence, ...alternatives];
-      for (let j = options.length - 1; j > 0; j--) {
-        const k = Math.floor(Math.random() * (j + 1));
-        [options[j], options[k]] = [options[k], options[j]];
-      }
-
-      used.add(key);
-      questions.push({
-        question: `Какое утверждение соответствует учебному материалу?`,
-        options,
-        correctIndex: options.indexOf(sentence),
-        explanation: `В учебном материале это утверждение сформулировано именно так.`
+        explanation: `Правильный ответ следует из определения понятия «${item.term}»: ${item.definition}`
       });
     }
 
     if (questions.length < 3) {
-      throw new Error('В материале недостаточно структурированного текста для качественного теста.');
+      throw new Error('В материале недостаточно однозначных определений для качественного теста.');
     }
+
     return questions.slice(0, 10);
   }
 
   function buildLocalFlashcards(text) {
-    const clean = localCleanText(text);
-    const defs = localTermsAndDefinitions(clean);
-    const sentences = localSentences(clean)
-      .filter(s => s.length >= 55 && s.length <= 240)
-      .filter(s => !/^основы\s+html/i.test(s));
+    const defs = localTermsAndDefinitions(localCleanText(text));
     const result = [];
     const seen = new Set();
 
-    // 1. Настоящие учебные пары термин → определение.
+    // Карточки строятся только из настоящих пар «термин → определение».
     for (const item of defs) {
       const key = item.term.toLowerCase();
       if (seen.has(key)) continue;
@@ -2445,23 +2425,11 @@
       if (result.length >= 10) break;
     }
 
-    // 2. Если определений мало — сохраняем смысл целого утверждения,
-    // но не подставляем случайное слово в вопрос.
-    for (const sentence of sentences) {
-      if (result.length >= 10) break;
-      const key = sentence.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      result.push({
-        question: `Какое важное утверждение нужно запомнить?`,
-        answer: sentence
-      });
+    if (result.length < 3) {
+      throw new Error('В материале недостаточно однозначных определений для качественных карточек.');
     }
 
-    if (result.length < 3) {
-      throw new Error('В материале недостаточно текста для создания карточек.');
-    }
-    return result.slice(0, 10);
+    return result;
   }
 
   function showLocalFallback(type, text, reason) {
