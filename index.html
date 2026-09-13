@@ -15,6 +15,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <style>
     * {
@@ -974,11 +975,13 @@
   }
 
   closeAiModal.addEventListener("click", () => {
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
     aiModal.classList.remove("active");
   });
 
   aiModal.addEventListener("click", (event) => {
     if (event.target === aiModal) {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
       aiModal.classList.remove("active");
     }
   });
@@ -2237,151 +2240,354 @@
   ============================== */
 
   async function generatePodcast(doc) {
-    aiTitle.textContent = "🎧 AI-подкаст";
+    aiTitle.textContent = "🎧 Бесплатный подкаст";
     aiContent.className = "ai-loading";
     aiContent.textContent =
-      "🐟 StudyFish готовит сценарий подкаста и озвучивает его...";
+      "🐟 StudyFish читает учебный материал прямо в браузере. Это бесплатно и не использует OpenAI API.";
     aiModal.classList.add("active");
-
-    let audioUrl = null;
 
     try {
       let text = "";
-      let imageUrl = null;
-
       const isImage =
         (doc.file_type || "").startsWith("image/") ||
         /\.(jpg|jpeg|png|webp|gif)$/i.test(doc.file_name || "");
 
+      const file = await downloadMaterial(doc);
+
       if (isImage) {
-        const {
-          data: signedData,
-          error: signedError
-        } = await supabaseClient.storage
-          .from("documents")
-          .createSignedUrl(doc.storage_path, 300);
-
-        if (signedError || !signedData?.signedUrl) {
-          throw new Error(
-            "Не удалось открыть изображение: " +
-            (signedError?.message || "неизвестная ошибка")
-          );
+        if (!window.Tesseract) {
+          throw new Error("Не загрузился бесплатный OCR-модуль для чтения изображения.");
         }
 
-        imageUrl = signedData.signedUrl;
+        aiContent.textContent =
+          "🔎 Читаю текст на изображении бесплатно прямо в браузере...";
+
+        const result = await window.Tesseract.recognize(file, "rus", {
+          logger: (info) => {
+            if (info && info.status === "recognizing text" && typeof info.progress === "number") {
+              aiContent.textContent =
+                "🔎 Читаю текст на изображении... " +
+                Math.round(info.progress * 100) + "%";
+            }
+          }
+        });
+
+        text = result?.data?.text || "";
       } else {
-        const file = await downloadMaterial(doc);
+        aiContent.textContent = "📖 Читаю учебный материал...";
         text = await extractTextFromFile(file, doc.file_name);
-        text = (text || "").trim();
-
-        if (!text) {
-          throw new Error("Не удалось найти текст в этом файле.");
-        }
-
-        if (text.length > 120000) {
-          text = text.slice(0, 120000);
-        }
       }
 
-      const response = await fetch("/api/podcast", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          text,
-          imageUrl,
-          fileName: doc.file_name || "Учебный материал"
-        })
-      });
+      text = cleanPodcastText(text);
 
-      const contentType =
-        response.headers.get("content-type") || "";
-
-      if (!response.ok) {
-        let message = "Не удалось создать подкаст.";
-        if (contentType.includes("application/json")) {
-          const data = await response.json();
-          message = data?.error || message;
-        } else {
-          const raw = await response.text();
-          if (raw) message = raw;
-        }
-        throw new Error(message);
+      if (!text) {
+        throw new Error(
+          "Не удалось найти текст для озвучки. Для изображения попробуй более чёткое фото."
+        );
       }
 
-      let script = "Подкаст создан по твоему учебному материалу.";
-      const encodedScript = response.headers.get("X-StudyFish-Script");
+      const maxChars = 30000;
+      const wasTrimmed = text.length > maxChars;
+      const spokenText = wasTrimmed ? text.slice(0, maxChars).trim() : text;
+      const script = buildFreePodcastScript(spokenText, doc.file_name, wasTrimmed);
 
-      if (encodedScript) {
-        try {
-          const bytes = Uint8Array.from(
-            atob(encodedScript),
-            char => char.charCodeAt(0)
-          );
-          script = new TextDecoder("utf-8").decode(bytes);
-        } catch (decodeError) {
-          console.warn("Не удалось прочитать сценарий из заголовка.", decodeError);
-        }
-      }
-
-      const blob = await response.blob();
-      audioUrl = URL.createObjectURL(blob);
-
-      aiContent.className = "podcast-player";
-      aiContent.innerHTML = "";
-
-      const card = window.document.createElement("div");
-      card.className = "podcast-card";
-
-      const title = window.document.createElement("div");
-      title.className = "podcast-title";
-      title.textContent = "Готово 🎧";
-
-      const subtitle = window.document.createElement("div");
-      subtitle.className = "podcast-subtitle";
-      subtitle.textContent =
-        "StudyFish превратил материал в короткий учебный аудиоподкаст.";
-
-      const audio = window.document.createElement("audio");
-      audio.className = "podcast-audio";
-      audio.controls = true;
-      audio.src = audioUrl;
-      audio.autoplay = false;
-
-      const download = window.document.createElement("a");
-      download.className = "podcast-download";
-      download.href = audioUrl;
-      download.download =
-        (doc.file_name || "studyfish-podcast")
-          .replace(/\.[^.]+$/, "") +
-        "-podcast.mp3";
-      download.textContent = "⬇️ Скачать MP3";
-
-      const scriptTitle = window.document.createElement("div");
-      scriptTitle.className = "podcast-title";
-      scriptTitle.textContent = "Сценарий";
-      scriptTitle.style.marginTop = "18px";
-
-      const scriptBox = window.document.createElement("div");
-      scriptBox.className = "podcast-script";
-      scriptBox.textContent = script;
-
-      card.appendChild(title);
-      card.appendChild(subtitle);
-      card.appendChild(audio);
-      card.appendChild(download);
-      card.appendChild(scriptTitle);
-      card.appendChild(scriptBox);
-      aiContent.appendChild(card);
-
+      renderFreePodcastPlayer(script);
     } catch (error) {
-      console.error("Podcast error:", error);
+      console.error("Free podcast error:", error);
       aiContent.className = "ai-result";
       aiContent.textContent =
-        "Не удалось создать подкаст.\n\n" +
+        "Не удалось подготовить бесплатный подкаст.\n\n" +
         (error?.message || "Неизвестная ошибка.");
     }
+  }
+
+  function cleanPodcastText(text) {
+    return String(text || "")
+      .replace(/\u0000/g, " ")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n[ \t]+/g, "\n")
+      .replace(/\n{3,}/g, "\n\n")
+      .replace(/ {2,}/g, " ")
+      .trim();
+  }
+
+  function buildFreePodcastScript(text, fileName, wasTrimmed) {
+    const title = (fileName || "учебному материалу").replace(/\.[^.]+$/, "");
+    let script =
+      "Привет! Это бесплатный подкаст StudyFish. Сейчас разберём учебный материал «" +
+      title +
+      "». Слушай внимательно и при необходимости ставь паузу.\n\n" +
+      text +
+      "\n\nНа этом всё. Повтори ключевые моменты ещё раз, и материал запомнится лучше. С тобой был StudyFish. Удачной учёбы!";
+
+    if (wasTrimmed) {
+      script =
+        "Внимание: материал довольно большой, поэтому для бесплатной озвучки взята первая часть текста.\n\n" +
+        script;
+    }
+
+    return script;
+  }
+
+  function splitSpeechText(text, maxLength = 260) {
+    const normalized = String(text || "").trim();
+    if (!normalized) return [];
+
+    const sentences = normalized.match(/[^.!?…]+[.!?…]+|[^.!?…]+$/g) || [normalized];
+    const chunks = [];
+    let current = "";
+
+    for (const sentenceRaw of sentences) {
+      const sentence = sentenceRaw.trim();
+      if (!sentence) continue;
+
+      if ((current + " " + sentence).trim().length <= maxLength) {
+        current = (current + " " + sentence).trim();
+        continue;
+      }
+
+      if (current) chunks.push(current);
+
+      if (sentence.length <= maxLength) {
+        current = sentence;
+      } else {
+        const words = sentence.split(/\s+/);
+        let part = "";
+        for (const word of words) {
+          if ((part + " " + word).trim().length <= maxLength) {
+            part = (part + " " + word).trim();
+          } else {
+            if (part) chunks.push(part);
+            part = word;
+          }
+        }
+        current = part;
+      }
+    }
+
+    if (current) chunks.push(current);
+    return chunks;
+  }
+
+  function renderFreePodcastPlayer(script) {
+    if (!window.speechSynthesis || !window.SpeechSynthesisUtterance) {
+      throw new Error(
+        "Твой браузер не поддерживает бесплатную озвучку. Попробуй Chrome, Edge или Safari."
+      );
+    }
+
+    aiContent.className = "podcast-player";
+    aiContent.innerHTML = "";
+
+    const card = window.document.createElement("div");
+    card.className = "podcast-card";
+
+    const title = window.document.createElement("div");
+    title.className = "podcast-title";
+    title.textContent = "Готово 🎧";
+
+    const subtitle = window.document.createElement("div");
+    subtitle.className = "podcast-subtitle";
+    subtitle.textContent =
+      "Озвучка работает прямо в браузере — без OpenAI API, без оплаты и без API-ключа.";
+
+    const controls = window.document.createElement("div");
+    controls.style.display = "grid";
+    controls.style.gap = "10px";
+    controls.style.margin = "14px 0";
+
+    const voiceLabel = window.document.createElement("label");
+    voiceLabel.textContent = "Голос";
+    voiceLabel.style.fontWeight = "700";
+    voiceLabel.style.color = "#172554";
+
+    const voiceSelect = window.document.createElement("select");
+    voiceSelect.style.width = "100%";
+    voiceSelect.style.padding = "10px 12px";
+    voiceSelect.style.borderRadius = "10px";
+    voiceSelect.style.border = "1px solid #cbd5e1";
+    voiceSelect.style.background = "white";
+
+    const rateLabel = window.document.createElement("label");
+    rateLabel.textContent = "Скорость: 1.0×";
+    rateLabel.style.fontWeight = "700";
+    rateLabel.style.color = "#172554";
+
+    const rate = window.document.createElement("input");
+    rate.type = "range";
+    rate.min = "0.7";
+    rate.max = "1.3";
+    rate.step = "0.1";
+    rate.value = "1";
+    rate.addEventListener("input", () => {
+      rateLabel.textContent = "Скорость: " + Number(rate.value).toFixed(1) + "×";
+    });
+
+    const buttons = window.document.createElement("div");
+    buttons.style.display = "flex";
+    buttons.style.flexWrap = "wrap";
+    buttons.style.gap = "10px";
+
+    const play = window.document.createElement("button");
+    play.className = "ai-btn";
+    play.type = "button";
+    play.textContent = "▶️ Слушать";
+
+    const pause = window.document.createElement("button");
+    pause.className = "ai-btn";
+    pause.type = "button";
+    pause.textContent = "⏸️ Пауза";
+
+    const stop = window.document.createElement("button");
+    stop.className = "ai-btn";
+    stop.type = "button";
+    stop.textContent = "⏹️ Стоп";
+
+    const status = window.document.createElement("div");
+    status.style.color = "#64748b";
+    status.style.fontSize = "14px";
+    status.textContent = "Готово к прослушиванию.";
+
+    const scriptTitle = window.document.createElement("div");
+    scriptTitle.className = "podcast-title";
+    scriptTitle.textContent = "Текст подкаста";
+    scriptTitle.style.marginTop = "18px";
+
+    const scriptBox = window.document.createElement("div");
+    scriptBox.className = "podcast-script";
+    scriptBox.textContent = script;
+
+    const chunks = splitSpeechText(script, 260);
+    let currentChunk = 0;
+    let playing = false;
+
+    function loadVoices() {
+      const voices = window.speechSynthesis.getVoices();
+      const russian = voices.filter((voice) =>
+        String(voice.lang || "").toLowerCase().startsWith("ru")
+      );
+      const available = russian.length ? russian : voices;
+
+      voiceSelect.innerHTML = "";
+      available.forEach((voice, index) => {
+        const option = window.document.createElement("option");
+        option.value = String(index);
+        option.textContent =
+          voice.name + " (" + voice.lang + ")" + (voice.default ? " — по умолчанию" : "");
+        voiceSelect.appendChild(option);
+      });
+
+      const preferredIndex = available.findIndex((voice) =>
+        /google|microsoft|yandex|irina|milena|russian/i.test(voice.name || "")
+      );
+      if (preferredIndex >= 0) voiceSelect.value = String(preferredIndex);
+    }
+
+    function selectedVoice() {
+      const voices = window.speechSynthesis.getVoices();
+      const russian = voices.filter((voice) =>
+        String(voice.lang || "").toLowerCase().startsWith("ru")
+      );
+      const available = russian.length ? russian : voices;
+      return available[Number(voiceSelect.value)] || available[0] || null;
+    }
+
+    function speakCurrentChunk() {
+      if (!chunks.length) return;
+
+      const utterance = new SpeechSynthesisUtterance(chunks[currentChunk]);
+      utterance.lang = "ru-RU";
+      utterance.rate = Number(rate.value);
+      utterance.pitch = 1;
+      utterance.volume = 1;
+
+      const voice = selectedVoice();
+      if (voice) utterance.voice = voice;
+
+      utterance.onstart = () => {
+        playing = true;
+        status.textContent =
+          "Воспроизводится часть " + (currentChunk + 1) + " из " + chunks.length + "…";
+      };
+
+      utterance.onend = () => {
+        if (!playing) return;
+        currentChunk++;
+        if (currentChunk >= chunks.length) {
+          playing = false;
+          currentChunk = 0;
+          status.textContent = "Подкаст закончен. Можно послушать ещё раз.";
+          return;
+        }
+        speakCurrentChunk();
+      };
+
+      utterance.onerror = (event) => {
+        playing = false;
+        status.textContent =
+          "Не удалось продолжить озвучку: " + (event.error || "ошибка браузера");
+      };
+
+      window.speechSynthesis.speak(utterance);
+    }
+
+    play.addEventListener("click", () => {
+      if (window.speechSynthesis.speaking && window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+        playing = true;
+        status.textContent = "Продолжаю воспроизведение…";
+        return;
+      }
+
+      if (window.speechSynthesis.speaking) return;
+
+      if (currentChunk >= chunks.length) currentChunk = 0;
+      playing = true;
+      speakCurrentChunk();
+    });
+
+    pause.addEventListener("click", () => {
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.pause();
+        status.textContent = "Пауза. Нажми «Слушать», чтобы продолжить.";
+      }
+    });
+
+    stop.addEventListener("click", () => {
+      playing = false;
+      window.speechSynthesis.cancel();
+      currentChunk = 0;
+      status.textContent = "Остановлено.";
+    });
+
+    voiceSelect.addEventListener("change", () => {
+      if (window.speechSynthesis.speaking) {
+        playing = false;
+        window.speechSynthesis.cancel();
+        currentChunk = 0;
+        status.textContent = "Голос изменён. Нажми «Слушать».";
+      }
+    });
+
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    controls.appendChild(voiceLabel);
+    controls.appendChild(voiceSelect);
+    controls.appendChild(rateLabel);
+    controls.appendChild(rate);
+    buttons.appendChild(play);
+    buttons.appendChild(pause);
+    buttons.appendChild(stop);
+    controls.appendChild(buttons);
+    controls.appendChild(status);
+
+    card.appendChild(title);
+    card.appendChild(subtitle);
+    card.appendChild(controls);
+    card.appendChild(scriptTitle);
+    card.appendChild(scriptBox);
+    aiContent.appendChild(card);
   }
 
 
