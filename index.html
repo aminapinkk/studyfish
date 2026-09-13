@@ -462,7 +462,19 @@
         width: 100%;
         align-items: flex-start;
       }
+
+      .ai-modal {
+        padding: 8px;
+        align-items: flex-end;
+      }
+
+      .ai-modal-box {
+        max-height: 94vh;
+        padding: 18px;
+        border-radius: 20px 20px 12px 12px;
+      }
     }
+
 
 
     .quiz-app {
@@ -702,7 +714,8 @@
 
     @media (max-width: 600px) {
       .flashcard-scene {
-        height: 360px;
+        height: min(360px, 62vh);
+        min-height: 270px;
       }
 
       .flashcard-text {
@@ -711,6 +724,58 @@
     }
 
   
+
+/* ==============================
+   STUDYFISH MOBILE POLISH + HISTORY
+============================== */
+.sf-history-toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.sf-history-filter{border:1px solid var(--sf-border);background:#fff;color:var(--sf-ink);border-radius:10px;padding:8px 11px;font-size:12px;font-weight:700;cursor:pointer}
+.sf-history-filter.active{background:var(--sf-blue);border-color:var(--sf-blue);color:#fff}
+.sf-history-item{align-items:flex-start}
+.sf-history-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:5px}
+.sf-history-pill{display:inline-flex;padding:4px 7px;border-radius:999px;background:var(--sf-blue-soft);color:var(--sf-blue);font-size:11px;font-weight:800}
+.sf-history-score{background:#ecfdf5;color:#15803d}
+.sf-history-action{font-size:12px;font-weight:800;color:var(--sf-blue);white-space:nowrap}
+@media(max-width:600px){
+  body{overflow-x:hidden}
+  .hero{padding:28px 16px!important;margin:20px 12px!important}
+  .hero h1{font-size:32px!important;line-height:1.12}
+  .hero p{font-size:15px!important}
+  .upload-box{margin:20px 12px;padding:25px 16px;border-radius:18px}
+  .upload-btn{width:100%;padding:13px 16px}
+  .materials{padding:0 12px;margin-top:28px}
+  .material{padding:15px;border-radius:16px;gap:14px}
+  .material-name{font-size:14px;line-height:1.4;word-break:break-word}
+  .material-right{width:100%;align-items:stretch!important}
+  .material-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;width:100%}
+  .ai-btn,.delete-btn{min-height:42px;width:100%;font-size:12px;padding:9px 7px}
+  .delete-btn{margin-top:2px}
+  .ai-modal{padding:0!important;align-items:flex-end}
+  .ai-modal-box{width:100%;max-width:none;max-height:92vh;padding:16px 13px;border-radius:20px 20px 0 0}
+  .ai-modal-box h2{font-size:19px}
+  .ai-result{padding:14px;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+  .quiz-question{font-size:17px!important;padding:15px!important}
+  .quiz-option{min-height:52px;padding:12px!important;font-size:14px!important}
+  .quiz-feedback{font-size:13px;padding:12px}
+  .quiz-score{font-size:34px}
+  .flashcard-scene{height:300px!important;min-height:0!important}
+  .flashcard-face{padding:20px 15px;border-radius:18px}
+  .flashcard-text{font-size:19px!important;overflow-wrap:anywhere}
+  .flashcard-controls{display:grid;grid-template-columns:1fr 1fr;width:100%}
+  .flashcard-control{width:100%;min-height:44px}
+  .sf-achievements{grid-template-columns:1fr 1fr!important}
+  .sf-fish-customizer{grid-template-columns:1fr!important}
+  .sf-history-item{padding:12px}
+  .sf-history-action{display:none}
+  .sf-history-toolbar{overflow-x:auto;flex-wrap:nowrap;padding-bottom:3px}
+  .sf-history-filter{white-space:nowrap;flex:0 0 auto}
+}
+@media(max-width:380px){
+  .material-actions{grid-template-columns:1fr}
+  .sf-achievements{grid-template-columns:1fr!important}
+  .sf-hero h1{font-size:28px!important}
+}
+
     /* ==============================
        STUDYFISH DASHBOARD / MOBILE
     ============================== */
@@ -800,6 +865,8 @@
 
     .sf-main {
       padding: 34px 0 60px;
+      transition: background 0.35s ease;
+      min-height: calc(100vh - 72px);
     }
 
     .sf-hero {
@@ -1179,6 +1246,20 @@
       z-index: 2;
     }
 
+    .sf-custom-options + .sf-custom-options {
+      margin-top: 10px;
+    }
+
+    .sf-custom-label {
+      display: block;
+      margin: 14px 0 7px;
+      color: var(--sf-muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
     .sf-custom-options {
       display: flex;
       flex-wrap: wrap;
@@ -1279,15 +1360,6 @@
       </section>
 
 
-      <section class="sf-section" id="studyfish-history">
-        <div class="sf-section-head">
-          <h2>История</h2>
-          <span>Последние материалы</span>
-        </div>
-        <div class="sf-history" id="studyfish-history-list">
-          <div class="sf-empty">История появится здесь после загрузки материалов.</div>
-        </div>
-      </section>
     </div>
   </main>
 
@@ -1417,14 +1489,34 @@
             <p style="margin:0 0 12px;color:var(--sf-muted);font-size:13px;line-height:1.5;">
               Выполняй учебные действия и открывай новые шапочки и фоны.
             </p>
+            <span class="sf-custom-label">Шапочка рыбки</span>
             <div class="sf-custom-options" id="sf-custom-options"></div>
+            <span class="sf-custom-label">Фон главного экрана</span>
+            <div class="sf-custom-options" id="sf-bg-options"></div>
           </div>
         </div>
 
         <div class="sf-achievements" id="sf-achievements-list" style="margin-top:14px;"></div>
       </section>
 
-
+      <section class="sf-section sf-history-section" id="studyfish-history">
+        <div class="sf-section-head">
+          <div>
+            <h2>История обучения</h2>
+            <span>Твои последние действия в StudyFish</span>
+          </div>
+        </div>
+        <div class="sf-history-toolbar" aria-label="Фильтр истории">
+          <button class="sf-history-filter active" data-filter="all" type="button">Всё</button>
+          <button class="sf-history-filter" data-filter="summary" type="button">📝 Конспекты</button>
+          <button class="sf-history-filter" data-filter="quiz" type="button">🧠 Тесты</button>
+          <button class="sf-history-filter" data-filter="flashcards" type="button">🃏 Карточки</button>
+          <button class="sf-history-filter" data-filter="podcast" type="button">🎧 Подкасты</button>
+        </div>
+        <div class="sf-history" id="studyfish-history-list">
+          <div class="sf-empty">История появится после первого действия.</div>
+        </div>
+      </section>
 
   <!-- AUTH MODAL -->
 
@@ -1583,6 +1675,13 @@
 
   aiModal.addEventListener("click", (event) => {
     if (event.target === aiModal) {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      aiModal.classList.remove("active");
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && aiModal.classList.contains("active")) {
       if (window.speechSynthesis) window.speechSynthesis.cancel();
       aiModal.classList.remove("active");
     }
@@ -2113,6 +2212,209 @@
     throw new Error("Этот формат файла пока не поддерживается.");
   }
 
+  /* ==============================
+     FREE LOCAL FALLBACK
+     Работает даже когда OpenAI временно недоступен.
+  ============================== */
+
+  function localCleanText(text) {
+    return String(text || "")
+      .replace(/\r/g, "")
+      .replace(/[ \t]+/g, " ")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  function localSentences(text) {
+    return localCleanText(text)
+      .split(/(?<=[.!?])\s+|\n+/)
+      .map(s => s.trim())
+      .filter(s => s.length >= 35);
+  }
+
+  function localImportantLines(text) {
+    return localCleanText(text)
+      .split("\n")
+      .map(s => s.trim())
+      .filter(s => s.length >= 3 && s.length <= 180)
+      .filter(s => {
+        const letters = (s.match(/[А-Яа-яA-Za-zЁё]/g) || []).length;
+        return letters >= 3;
+      });
+  }
+
+  function buildLocalSummary(text) {
+    const lines = localImportantLines(text);
+    const sentences = localSentences(text);
+    const chosen = [];
+    const seen = new Set();
+
+    [...lines.filter(x => x.length <= 100), ...sentences].forEach(line => {
+      const key = line.toLowerCase();
+      if (!seen.has(key) && chosen.length < 12) {
+        seen.add(key);
+        chosen.push(line);
+      }
+    });
+
+    const keyTerms = [];
+    const termRegex = /\b[А-ЯЁ][А-ЯЁа-яёA-Za-z-]{3,}\b/g;
+    const counts = {};
+    for (const match of localCleanText(text).matchAll(termRegex)) {
+      const word = match[0];
+      const key = word.toLowerCase();
+      if (["это", "также", "которые", "который", "данный", "такие", "можно", "если", "для", "при"].includes(key)) continue;
+      counts[key] = (counts[key] || 0) + 1;
+    }
+    Object.entries(counts)
+      .sort((a,b) => b[1] - a[1])
+      .slice(0, 10)
+      .forEach(([word]) => keyTerms.push(word));
+
+    return `🐟 Бесплатный конспект StudyFish\n\n` +
+      `Главное\n${chosen.slice(0, 6).map(x => "• " + x).join("\n") || "Текст материала не удалось выделить."}\n\n` +
+      `Ключевые моменты\n${chosen.slice(6, 12).map(x => "• " + x).join("\n") || "Дополнительных фрагментов не найдено."}\n\n` +
+      `Ключевые термины\n${keyTerms.length ? keyTerms.map(x => "• " + x).join("\n") : "• Термины не удалось автоматически выделить."}\n\n` +
+      `ℹ️ Этот результат создан бесплатно в браузере, без запроса к ИИ.`;
+  }
+
+  function buildLocalQuiz(text) {
+    const sentences = localSentences(text)
+      .filter(s => s.length >= 55 && s.length <= 280);
+
+    const source = [];
+    const seen = new Set();
+
+    for (const sentence of sentences) {
+      const key = sentence.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        source.push(sentence);
+      }
+      if (source.length >= 10) break;
+    }
+
+    if (!source.length) {
+      throw new Error("Для бесплатного теста в материале слишком мало текста.");
+    }
+
+    const usedAnswers = new Set();
+
+    return source.map((sentence, i) => {
+      const words = sentence.match(/[А-Яа-яЁёA-Za-z][А-Яа-яЁёA-Za-z0-9-]{4,}/g) || [];
+      const answer = [...words]
+        .sort((a, b) => b.length - a.length)
+        .find(w => !usedAnswers.has(w.toLowerCase())) || words[0] || sentence.split(/\s+/)[0];
+
+      usedAnswers.add(answer.toLowerCase());
+
+      const question = sentence.replace(answer, "□" );
+      const distractors = [];
+
+      for (const other of source) {
+        const candidates = other.match(/[А-Яа-яЁёA-Za-z][А-Яа-яЁёA-Za-z0-9-]{4,}/g) || [];
+        const candidate = [...candidates]
+          .sort((a, b) => Math.abs(a.length - answer.length) - Math.abs(b.length - answer.length))
+          .find(w => w.toLowerCase() !== answer.toLowerCase() && !distractors.some(x => x.toLowerCase() === w.toLowerCase()));
+        if (candidate) distractors.push(candidate);
+        if (distractors.length >= 3) break;
+      }
+
+      while (distractors.length < 3) {
+        const fallback = ["понятие", "пример", "свойство", "элемент"][distractors.length] || "термин";
+        if (fallback.toLowerCase() !== answer.toLowerCase()) distractors.push(fallback);
+      }
+
+      const options = [answer, ...distractors.slice(0, 3)];
+      // Перемешиваем варианты, чтобы правильный ответ не всегда был первым.
+      for (let j = options.length - 1; j > 0; j--) {
+        const k = Math.floor(Math.random() * (j + 1));
+        [options[j], options[k]] = [options[k], options[j]];
+      }
+
+      return {
+        question: `Вставь пропущенное слово в утверждение:
+${question}`,
+        options,
+        correctIndex: options.indexOf(answer),
+        explanation: `В исходном утверждении пропущено слово «${answer}».`
+      };
+    });
+  }
+
+  function buildLocalFlashcards(text) {
+    const sentences = localSentences(text)
+      .filter(s => s.length >= 45 && s.length <= 260);
+    const lines = localImportantLines(text)
+      .filter(s => s.length >= 25 && s.length <= 180);
+
+    const source = [];
+    const seen = new Set();
+    for (const item of [...lines, ...sentences]) {
+      const key = item.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        source.push(item);
+      }
+      if (source.length >= 12) break;
+    }
+
+    if (!source.length) {
+      throw new Error("Для бесплатных карточек в материале слишком мало текста.");
+    }
+
+    return source.map((item, i) => {
+      const words = item.match(/[А-Яа-яЁёA-Za-z][А-Яа-яЁёA-Za-z0-9-]{4,}/g) || [];
+      const answer = [...words].sort((a, b) => b.length - a.length)[0] || "ключевой термин";
+      const front = item.replace(answer, "□");
+
+      return {
+        question: `Карточка ${i + 1}. Вспомни пропущенное слово:
+${front}`,
+        answer: answer + "\n\nПолный фрагмент: " + item
+      };
+    });
+  }
+
+  function showLocalFallback(type, text, reason) {
+    if (type === "summary") {
+      aiContent.className = "ai-result";
+      aiContent.textContent = buildLocalSummary(text);
+      return;
+    }
+    if (type === "quiz") {
+      renderQuiz(buildLocalQuiz(text));
+      return;
+    }
+    if (type === "flashcards") {
+      renderFlashcards(buildLocalFlashcards(text));
+      return;
+    }
+    throw reason || new Error("AI временно недоступен.");
+  }
+
+  async function extractImageTextFree(doc) {
+    const file = await downloadMaterial(doc);
+    if (!window.Tesseract) {
+      throw new Error("Бесплатное распознавание фото пока недоступно.");
+    }
+    aiContent.className = "ai-loading";
+    aiContent.textContent = "🐟 Бесплатно распознаю текст на фото...";
+    const result = await window.Tesseract.recognize(
+      file,
+      "rus",
+      {
+        logger: message => {
+          if (message && typeof message.progress === "number") {
+            const percent = Math.round(message.progress * 100);
+            aiContent.textContent = `🐟 Распознаю текст на фото... ${percent}%`;
+          }
+        }
+      }
+    );
+    return localCleanText(result?.data?.text || "").slice(0, 30000);
+  }
+
   async function generateAI(doc, type) {
     const titles = {
       summary: "📝 Конспект",
@@ -2128,35 +2430,17 @@
 
     try {
       let text = "";
-      let imageUrl = null;
 
       const isImage =
         (doc.file_type || "").startsWith("image/") ||
         /\.(jpg|jpeg|png|webp|gif)$/i.test(doc.file_name || "");
 
       if (isImage) {
-        /*
-         * ВАЖНО:
-         * Фото не превращаем в Base64 и не отправляем через Vercel.
-         * Создаём временную приватную ссылку Supabase на 5 минут.
-         * OpenAI получает изображение напрямую по этой ссылке.
-         */
-        const {
-          data: signedData,
-          error: signedError
-        } = await supabaseClient.storage
-          .from("documents")
-          .createSignedUrl(doc.storage_path, 300);
-
-        if (signedError || !signedData?.signedUrl) {
-          throw new Error(
-            "Не удалось открыть изображение: " +
-            (signedError?.message || "неизвестная ошибка")
-          );
+        // Фото сначала бесплатно распознаём в браузере.
+        text = await extractImageTextFree(doc);
+        if (!text) {
+          throw new Error("На фото не удалось распознать текст.");
         }
-
-        imageUrl = signedData.signedUrl;
-
       } else {
         const file = await downloadMaterial(doc);
         text = await extractTextFromFile(file, doc.file_name);
@@ -2168,7 +2452,7 @@
           );
         }
 
-        const maxChars = 120000;
+        const maxChars = 30000;
         if (text.length > maxChars) {
           text = text.slice(0, maxChars);
         }
@@ -2181,8 +2465,7 @@
         },
         body: JSON.stringify({
           type,
-          text,
-          imageUrl
+          text
         })
       });
 
@@ -2200,6 +2483,10 @@
       }
 
       if (!response.ok) {
+        if (response.status === 429 || data?.code === "RATE_LIMITED") {
+          showLocalFallback(type, text, new Error(data?.error || "AI временно достиг лимита запросов."));
+          return;
+        }
         throw new Error(
           data?.error ||
           "Не удалось получить ответ от AI."
@@ -2334,6 +2621,10 @@
           "AI не вернул результат.";
       }
 
+      if (window.studyFishAddHistory) {
+        window.studyFishAddHistory(type, doc.file_name || "Учебный материал");
+      }
+
       /*
        * Сохраняем результат в Supabase.
        */
@@ -2363,6 +2654,15 @@
     } catch (error) {
       console.error("StudyFish AI error:", error);
 
+      try {
+        if ((type === "summary" || type === "quiz" || type === "flashcards") && text) {
+          showLocalFallback(type, text, error);
+          return;
+        }
+      } catch (fallbackError) {
+        console.error("StudyFish fallback error:", fallbackError);
+      }
+
       aiContent.className = "ai-result";
       aiContent.textContent =
         "Не удалось обработать материал.\n\n" +
@@ -2385,7 +2685,12 @@
       )
       .map(q => {
         const options = q.options
-          .map(option => String(option).trim())
+          .map(option => {
+            if (option && typeof option === "object") {
+              return String(option.label ?? option.text ?? option.value ?? "").trim();
+            }
+            return String(option ?? "").trim();
+          })
           .filter(Boolean);
 
         let correctIndex = Number.isInteger(q.correctIndex)
@@ -2478,7 +2783,7 @@
       })
       .filter(q =>
         q.question &&
-        q.options.length >= 2 &&
+        q.options.length >= 4 &&
         q.correctIndex >= 0 &&
         q.correctIndex < q.options.length
       );
@@ -2492,6 +2797,8 @@
     let current = 0;
     let score = 0;
     let answered = false;
+
+    if (window.studyFishTrack) window.studyFishTrack("tests", 1);
 
     aiContent.className = "quiz-app";
     aiContent.innerHTML = "";
@@ -2545,6 +2852,10 @@
       const percent = Math.round(
         (score / safeQuestions.length) * 100
       );
+
+      if (window.studyFishAddHistory) {
+        window.studyFishAddHistory("quiz", window.currentStudyFishMaterialName || "Учебный материал", {score, total: safeQuestions.length});
+      }
 
       const message =
         window.document.createElement("p");
@@ -2710,14 +3021,10 @@
 
   function renderFlashcards(cards) {
     const safeCards = cards
-      .filter(card =>
-        card &&
-        typeof card.question === "string" &&
-        typeof card.answer === "string"
-      )
+      .filter(card => card && typeof card === "object")
       .map(card => ({
-        question: card.question.trim(),
-        answer: card.answer.trim()
+        question: String(card.question ?? card.front ?? card.prompt ?? "").trim(),
+        answer: String(card.answer ?? card.back ?? card.response ?? "").trim()
       }))
       .filter(card => card.question && card.answer);
 
@@ -2727,6 +3034,8 @@
 
     let current = 0;
     let flipped = false;
+
+    if (window.studyFishTrack) window.studyFishTrack("cards", safeCards.length);
 
     aiContent.className = "flashcards-app";
     aiContent.innerHTML = "";
@@ -2856,6 +3165,8 @@
   ============================== */
 
   async function generatePodcast(doc) {
+    if (window.studyFishTrack) window.studyFishTrack("podcasts", 1);
+    if (window.studyFishAddHistory) window.studyFishAddHistory("podcast", doc.file_name || "Учебный материал");
     if (window.studyFishUnlock) window.studyFishUnlock("first_podcast");
     aiTitle.textContent = "🎧 Бесплатный подкаст";
     aiContent.className = "ai-loading";
@@ -3283,57 +3594,93 @@
 
 <script>
 (function () {
-  function updateStudyFishHistory() {
-    const list = document.getElementById("studyfish-history-list");
-    if (!list) return;
+  const KEY = "studyfish_history_v2";
+  let activeFilter = "all";
 
-    const candidates = [
-      document.getElementById("materialsList"),
-      document.querySelector("#studyfish-materials"),
-      document.querySelector("#materials"),
-      document.querySelector(".materials-list"),
-      document.querySelector(".materials-container")
-    ].filter(Boolean);
+  function esc(v) {
+    return String(v ?? "").replace(/[&<>\"]/g, s => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[s]));
+  }
+  function readLocal() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch { return []; }
+  }
+  function writeLocal(items) {
+    localStorage.setItem(KEY, JSON.stringify(items.slice(0, 100)));
+  }
+  function label(type) {
+    return {summary:"Конспект",quiz:"Тест",flashcards:"Карточки",podcast:"Подкаст"}[type] || "Материал";
+  }
+  function icon(type) {
+    return {summary:"📝",quiz:"🧠",flashcards:"🃏",podcast:"🎧"}[type] || "📄";
+  }
+  function addLocal(type, name, extra={}) {
+    const items = readLocal();
+    items.unshift({id:Date.now()+Math.random(), type, name:name||"Учебный материал", created_at:new Date().toISOString(), score:extra.score ?? null, total:extra.total ?? null});
+    writeLocal(items);
+    render(items);
+  }
+  window.studyFishAddHistory = addLocal;
 
-    let cards = [];
-    for (const root of candidates) {
-      cards = Array.from(root.querySelectorAll(
-        ".material, .material-card, .document-card, [data-document-id]"
-      ));
-      if (cards.length) break;
+  function render(items) {
+    const list=document.getElementById("studyfish-history-list");
+    if(!list) return;
+    const filtered=activeFilter==="all" ? items : items.filter(x=>x.type===activeFilter);
+    if(!filtered.length){
+      list.innerHTML='<div class="sf-empty">Здесь пока ничего нет. Открой конспект, тест, карточки или подкаст.</div>';
+      return;
     }
-
-    if (!cards.length) return;
-
-    const items = cards.slice(-5).reverse().map(card => {
-      const nameEl = card.querySelector(
-        ".material-name, .document-name, .material-title, h3, h4"
-      );
-      const name = (nameEl?.textContent || "Учебный материал").trim();
-      return `
-        <div class="sf-history-item">
-          <div class="sf-history-icon">📄</div>
-          <div class="sf-history-name">
-            <strong>${name.replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]))}</strong>
-            <span>Материал StudyFish</span>
-          </div>
+    list.innerHTML=filtered.slice(0,30).map(x=>{
+      const d=new Date(x.created_at);
+      const date=isNaN(d) ? "" : d.toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+      const score=x.score!=null && x.total ? `<span class="sf-history-pill sf-history-score">${esc(x.score)}/${esc(x.total)}</span>` : "";
+      return `<div class="sf-history-item">
+        <div class="sf-history-icon">${icon(x.type)}</div>
+        <div class="sf-history-name">
+          <strong>${esc(x.name)}</strong>
+          <div class="sf-history-meta"><span class="sf-history-pill">${label(x.type)}</span>${score}<span>${esc(date)}</span></div>
         </div>
-      `;
-    });
-
-    if (items.length) list.innerHTML = items.join("");
+        <div class="sf-history-action">${label(x.type)} →</div>
+      </div>`;
+    }).join("");
   }
 
-  window.addEventListener("load", () => {
-    updateStudyFishHistory();
-    const observer = new MutationObserver(() => updateStudyFishHistory());
-    const target =
-      document.getElementById("materialsList") ||
-      document.querySelector("#studyfish-materials") ||
-      document.querySelector("#materials") ||
-      document.querySelector(".materials-list") ||
-      document.body;
-    observer.observe(target, {childList: true, subtree: true});
+  async function loadFromSupabase() {
+    try {
+      if(typeof supabaseClient === "undefined") return [];
+      const {data:authData}=await supabaseClient.auth.getUser();
+      const user=authData?.user;
+      if(!user) return [];
+      const {data,error}=await supabaseClient.from("study_results").select("id,document_id,result_type,created_at,content").eq("user_id",user.id).order("created_at",{ascending:false}).limit(50);
+      if(error) throw error;
+      let docs={};
+      const ids=[...new Set((data||[]).map(x=>x.document_id).filter(Boolean))];
+      if(ids.length){
+        const r=await supabaseClient.from("documents").select("id,file_name").in("id",ids);
+        (r.data||[]).forEach(d=>docs[d.id]=d.file_name);
+      }
+      return (data||[]).map(x=>({id:x.id,type:x.result_type,name:docs[x.document_id]||"Учебный материал",created_at:x.created_at,score:null,total:null}));
+    } catch(e) { console.warn("History load:",e); return []; }
+  }
+
+  async function refresh() {
+    const local=readLocal();
+    render(local);
+    const remote=await loadFromSupabase();
+    if(remote.length){
+      const merged=[...remote,...local];
+      const seen=new Set();
+      const unique=merged.filter(x=>{const k=`${x.type}|${x.name}|${x.created_at?.slice(0,16)}`;if(seen.has(k))return false;seen.add(k);return true;});
+      writeLocal(unique);
+      render(unique);
+    }
+  }
+
+  window.addEventListener("load",()=>{
+    document.querySelectorAll(".sf-history-filter").forEach(btn=>btn.addEventListener("click",()=>{
+      document.querySelectorAll(".sf-history-filter").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active"); activeFilter=btn.dataset.filter||"all"; render(readLocal());
+    }));
+    refresh();
+    setTimeout(refresh,1500);
   });
 })();
 </script>
@@ -3342,24 +3689,30 @@
 <script>
 (function () {
   const ACHIEVEMENTS = [
-    { id: "first_material", icon: "📚", name: "Первый материал", desc: "Загрузи свой первый учебный материал.", action: "materials", hat: "🎓", bg: "linear-gradient(135deg,#dbeafe,#ffffff)" },
-    { id: "three_materials", icon: "📚", name: "Учёный запас", desc: "Загрузи 3 учебных материала.", action: "materials3", hat: "🎓", bg: "linear-gradient(135deg,#ede9fe,#ffffff)" },
-    { id: "first_test", icon: "🧠", name: "Первый тест", desc: "Запусти свой первый тест.", action: "tests", hat: "👑", bg: "linear-gradient(135deg,#fef3c7,#ffffff)" },
-    { id: "first_cards", icon: "🃏", name: "Карточки в деле", desc: "Открой первый набор карточек.", action: "cards", hat: "🧢", bg: "linear-gradient(135deg,#dcfce7,#ffffff)" },
-    { id: "first_podcast", icon: "🎧", name: "Слушатель", desc: "Запусти первый бесплатный подкаст.", action: "podcast", hat: "🎧", bg: "linear-gradient(135deg,#fce7f3,#ffffff)" },
-    { id: "all_tools", icon: "⭐", name: "Мастер StudyFish", desc: "Попробуй все основные инструменты.", action: "all", hat: "⭐", bg: "linear-gradient(135deg,#fef9c3,#ffffff)" }
+    { id: "first_material", icon: "📚", name: "Первый материал", desc: "Загрузи свой первый учебный материал.", hat: "🎓", bg: "linear-gradient(135deg,#dbeafe,#ffffff)", screenBg: "linear-gradient(135deg,#f8fbff 0%,#e0efff 48%,#fffdf5 100%)", screenName: "Морская свежесть" },
+    { id: "three_materials", icon: "📚", name: "Учёный запас", desc: "Загрузи 3 учебных материала.", hat: "🎓", bg: "linear-gradient(135deg,#ede9fe,#ffffff)", screenBg: "linear-gradient(135deg,#faf7ff 0%,#c4b5fd 48%,#f5f3ff 100%)", screenName: "Фиолетовая волна" },
+    { id: "first_test", icon: "🧠", name: "Первый тест", desc: "Пройди свой первый тест.", hat: "👑", bg: "linear-gradient(135deg,#fef3c7,#ffffff)", screenBg: "linear-gradient(135deg,#fffaf0 0%,#fde68a 48%,#fff7ed 100%)", screenName: "Золотой успех" },
+    { id: "first_cards", icon: "🃏", name: "Карточки в деле", desc: "Открой первый набор карточек.", hat: "🧢", bg: "linear-gradient(135deg,#dcfce7,#ffffff)", screenBg: "linear-gradient(135deg,#f3fff8 0%,#86efac 48%,#effcf6 100%)", screenName: "Мятная лагуна" },
+    { id: "first_podcast", icon: "🎧", name: "Слушатель", desc: "Запусти первый бесплатный подкаст.", hat: "🎧", bg: "linear-gradient(135deg,#fce7f3,#ffffff)", screenBg: "linear-gradient(135deg,#fff7fb 0%,#f9a8d4 48%,#fff1f2 100%)", screenName: "Розовая музыка" },
+    { id: "all_tools", icon: "⭐", name: "Мастер StudyFish", desc: "Попробуй все основные инструменты.", hat: "⭐", bg: "linear-gradient(135deg,#fef9c3,#ffffff)", screenBg: "linear-gradient(135deg,#fffff0 0%,#fde047 48%,#fffbea 100%)", screenName: "Звёздный режим" },
+    { id: "five_materials", icon: "🌊", name: "Исследователь", desc: "Загрузи 5 учебных материалов.", hat: "🧭", bg: "linear-gradient(135deg,#cffafe,#ffffff)", screenBg: "linear-gradient(135deg,#ecfeff 0%,#67e8f9 48%,#f0fdfa 100%)", screenName: "Бирюзовый океан" },
+    { id: "three_tests", icon: "🏅", name: "Триумф тестов", desc: "Пройди 3 теста.", hat: "🏅", bg: "linear-gradient(135deg,#ffedd5,#ffffff)", screenBg: "linear-gradient(135deg,#fff7ed 0%,#fdba74 48%,#fffbeb 100%)", screenName: "Апельсиновый закат" },
+    { id: "twenty_cards", icon: "💎", name: "Мастер памяти", desc: "Открой 20 учебных карточек.", hat: "💎", bg: "linear-gradient(135deg,#dbeafe,#f5f3ff)", screenBg: "linear-gradient(135deg,#eff6ff 0%,#a5b4fc 48%,#f5f3ff 100%)", screenName: "Кристальный космос" },
+    { id: "three_podcasts", icon: "🌙", name: "Ночной учёный", desc: "Запусти 3 подкаста.", hat: "🌙", bg: "linear-gradient(135deg,#e0e7ff,#ffffff)", screenBg: "linear-gradient(135deg,#eef2ff 0%,#818cf8 48%,#e0e7ff 100%)", screenName: "Лунная ночь" }
   ];
 
   const KEY = "studyfish_achievements_v1";
   const CUSTOM_KEY = "studyfish_fish_custom_v1";
+  const PROGRESS_KEY = "studyfish_progress_v1";
 
   function getState() {
     try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; }
   }
-
-  function saveState(state) {
-    localStorage.setItem(KEY, JSON.stringify(state));
+  function saveState(state) { localStorage.setItem(KEY, JSON.stringify(state)); }
+  function getProgress() {
+    try { return JSON.parse(localStorage.getItem(PROGRESS_KEY)) || {}; } catch { return {}; }
   }
+  function saveProgress(p) { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); }
 
   function unlock(id) {
     const state = getState();
@@ -3367,39 +3720,67 @@
       state[id] = Date.now();
       saveState(state);
       renderAchievements();
+      renderCustomizer();
     }
   }
 
-  function isUnlocked(a) {
-    return !!getState()[a.id];
+  function track(kind, amount = 1) {
+    const p = getProgress();
+    p[kind] = (Number(p[kind]) || 0) + amount;
+    saveProgress(p);
+    checkAchievements();
+  }
+
+  function checkAchievements(materialCount) {
+    const p = getProgress();
+    const count = Number.isFinite(materialCount) ? materialCount : (Number(p.materials) || 0);
+    if (count >= 1) unlock("first_material");
+    if (count >= 3) unlock("three_materials");
+    if (count >= 5) unlock("five_materials");
+    if ((p.tests || 0) >= 1) unlock("first_test");
+    if ((p.tests || 0) >= 3) unlock("three_tests");
+    if ((p.cards || 0) >= 1) unlock("first_cards");
+    if ((p.cards || 0) >= 20) unlock("twenty_cards");
+    if ((p.podcasts || 0) >= 1) unlock("first_podcast");
+    if ((p.podcasts || 0) >= 3) unlock("three_podcasts");
+    const state = getState();
+    if (state.first_material && state.first_test && state.first_cards && state.first_podcast) unlock("all_tools");
   }
 
   function renderAchievements() {
     const list = document.getElementById("sf-achievements-list");
     if (!list) return;
     const state = getState();
-
-    list.innerHTML = ACHIEVEMENTS.map(a => {
-      const unlocked = !!state[a.id];
-      return `
-        <div class="sf-achievement ${unlocked ? "" : "locked"}">
-          <div class="sf-achievement-icon">${a.icon}</div>
-          <strong>${a.name}</strong>
-          <p>${a.desc}</p>
-          <span class="sf-achievement-state">${unlocked ? "✓ Открыто" : "🔒 Закрыто"}</span>
-        </div>
-      `;
-    }).join("");
+    const unlockedCount = ACHIEVEMENTS.filter(a => state[a.id]).length;
+    list.innerHTML = `
+      <div style="grid-column:1/-1;padding:4px 2px 10px;color:var(--sf-muted);font-size:13px;font-weight:700;">
+        Открыто ${unlockedCount} из ${ACHIEVEMENTS.length} · за каждое достижение открывается новый образ рыбки
+      </div>
+      ${ACHIEVEMENTS.map(a => {
+        const unlocked = !!state[a.id];
+        return `
+          <div class="sf-achievement ${unlocked ? "" : "locked"}">
+            <div class="sf-achievement-icon">${a.icon}</div>
+            <strong>${a.name}</strong>
+            <p>${a.desc}</p>
+            <span class="sf-achievement-state">${unlocked ? "✓ Открыто · 🎩 шапочка + 🎨 фон" : "🔒 Закрыто"}</span>
+          </div>`;
+      }).join("")}
+    `;
   }
 
   function getCustom() {
     try {
-      return JSON.parse(localStorage.getItem(CUSTOM_KEY)) || { hat: "", bg: "linear-gradient(135deg,#eaf3ff,#ffffff)" };
+      const saved = JSON.parse(localStorage.getItem(CUSTOM_KEY)) || {};
+      return {
+        hat: saved.hat || "",
+        bg: saved.bg || "linear-gradient(135deg,#eaf3ff,#ffffff)",
+        screenBg: saved.screenBg || "linear-gradient(135deg,#f6f9ff 0%,#ffffff 55%,#eff6ff 100%)"
+      };
     } catch {
-      return { hat: "", bg: "linear-gradient(135deg,#eaf3ff,#ffffff)" };
+      return { hat: "", bg: "linear-gradient(135deg,#eaf3ff,#ffffff)", screenBg: "linear-gradient(135deg,#f6f9ff 0%,#ffffff 55%,#eff6ff 100%)" };
     }
   }
-
   function setCustom(custom) {
     localStorage.setItem(CUSTOM_KEY, JSON.stringify(custom));
     renderCustomizer();
@@ -3409,80 +3790,110 @@
     const preview = document.getElementById("sf-fish-preview");
     const hat = document.getElementById("sf-fish-hat");
     const options = document.getElementById("sf-custom-options");
-    if (!preview || !hat || !options) return;
+    const bgOptions = document.getElementById("sf-bg-options");
+    const main = document.getElementById("studyfish-dashboard");
+    if (!preview || !hat || !options || !bgOptions) return;
 
     const custom = getCustom();
     preview.style.background = custom.bg;
     hat.textContent = custom.hat || "";
+    if (main) main.style.background = custom.screenBg;
 
-    const unlocked = ACHIEVEMENTS.filter(isUnlocked);
-    const choices = [
+    const unlocked = ACHIEVEMENTS.filter(a => isUnlocked(a));
+    const hatChoices = [
       { label: "🐟 Обычный", hat: "", bg: "linear-gradient(135deg,#eaf3ff,#ffffff)" },
-      ...unlocked.map(a => ({ label: a.hat + " " + a.name, hat: a.hat, bg: a.bg }))
+      ...unlocked.map(a => ({ label: `${a.hat} ${a.name}`, hat: a.hat, bg: a.bg }))
     ];
+    options.innerHTML = hatChoices.map((c, i) => `<button type="button" class="sf-custom-option ${custom.hat === c.hat && custom.bg === c.bg ? "active" : ""}" data-i="${i}">${c.label}</button>`).join("");
+    options.querySelectorAll(".sf-custom-option").forEach(btn => btn.addEventListener("click", () => setCustom({ ...getCustom(), hat: hatChoices[Number(btn.dataset.i)].hat, bg: hatChoices[Number(btn.dataset.i)].bg })));
 
-    options.innerHTML = choices.map((c, i) => `
-      <button type="button" class="sf-custom-option ${custom.hat === c.hat && custom.bg === c.bg ? "active" : ""}" data-i="${i}">
-        ${c.label}
-      </button>
-    `).join("");
-
-    options.querySelectorAll(".sf-custom-option").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const c = choices[Number(btn.dataset.i)];
-        setCustom({ hat: c.hat, bg: c.bg });
-      });
-    });
+    const bgChoices = [
+      { label: "🌊 Стандарт", screenBg: "linear-gradient(135deg,#f6f9ff 0%,#ffffff 55%,#eff6ff 100%)" },
+      ...unlocked.map(a => ({ label: `🎨 ${a.screenName}`, screenBg: a.screenBg }))
+    ];
+    bgOptions.innerHTML = bgChoices.map((c, i) => `<button type="button" class="sf-custom-option ${custom.screenBg === c.screenBg ? "active" : ""}" data-i="${i}">${c.label}</button>`).join("");
+    bgOptions.querySelectorAll(".sf-custom-option").forEach(btn => btn.addEventListener("click", () => setCustom({ ...getCustom(), screenBg: bgChoices[Number(btn.dataset.i)].screenBg })));
   }
 
+  function isUnlocked(a) { return !!getState()[a.id]; }
   window.studyFishUnlock = unlock;
+  window.studyFishTrack = track;
 
   window.addEventListener("load", () => {
     renderAchievements();
     renderCustomizer();
 
-    // First material achievements are based on the existing material cards.
     const countMaterials = () => {
-      const roots = [
-        document.getElementById("materialsList"),
-        document.querySelector("#materials"),
-        document.querySelector(".materials-list"),
-        document.querySelector(".materials-container")
-      ].filter(Boolean);
-
-      let count = 0;
-      for (const root of roots) {
-        const cards = root.querySelectorAll(
-          ".material, .material-card, .document-card, [data-document-id]"
-        );
-        if (cards.length) { count = cards.length; break; }
-      }
-
-      if (count >= 1) unlock("first_material");
-      if (count >= 3) unlock("three_materials");
+      const root = document.getElementById("materialsList");
+      const cards = root ? root.querySelectorAll(".material, .material-card, .document-card, [data-document-id]") : [];
+      const count = cards.length;
+      const p = getProgress();
+      p.materials = Math.max(Number(p.materials) || 0, count);
+      saveProgress(p);
+      checkAchievements(count);
     };
 
     countMaterials();
     const observer = new MutationObserver(countMaterials);
-    observer.observe(document.body, { childList: true, subtree: true });
+    observer.observe(document.getElementById("materialsList") || document.body, { childList: true, subtree: true });
+    setInterval(() => checkAchievements(), 1000);
   });
 })();
 </script>
 
 
-<script>
-(function () {
-  function checkAllTools() {
-    try {
-      const s = JSON.parse(localStorage.getItem("studyfish_achievements_v1") || "{}");
-      if (s.first_material && s.first_test && s.first_cards && s.first_podcast) {
-        if (window.studyFishUnlock) window.studyFishUnlock("all_tools");
-      }
-    } catch {}
-  }
-  setInterval(checkAllTools, 1500);
-})();
-</script>
+
+
+
+<style id="studyfish-final-polish">
+/* ===== StudyFish unified layout ===== */
+.sf-main{padding-bottom:8px}
+.sf-shell{max-width:1120px}
+.sf-hero{box-shadow:0 18px 45px rgba(37,99,235,.08)}
+.sf-section{scroll-margin-top:92px}
+
+/* Keep one visual system: the legacy upload area becomes a compact upload card. */
+body > nav:not(.sf-topbar){display:none!important}
+.features{display:none!important}
+body > .hero{margin:18px auto 0!important;padding:0!important;max-width:1120px!important;background:transparent!important;box-shadow:none!important}
+body > .hero > .fish,
+body > .hero > h1,
+body > .hero > p{display:none!important}
+.upload-box{margin:0!important;border:1px solid var(--sf-border)!important;border-radius:22px!important;box-shadow:0 14px 35px rgba(15,23,42,.06)!important;background:#fff!important}
+.upload-box h2{margin-top:0}
+
+/* Unified history */
+.sf-history-section{margin-top:0}
+.sf-history{display:flex;flex-direction:column;gap:9px}
+.sf-history-item{display:flex;gap:12px;width:100%;padding:14px 16px;border:1px solid var(--sf-border);border-radius:16px;background:#fff;box-sizing:border-box}
+.sf-history-icon{width:42px;height:42px;display:grid;place-items:center;flex:0 0 42px;border-radius:13px;background:var(--sf-blue-soft);font-size:20px}
+.sf-history-name{min-width:0;flex:1}
+.sf-history-name strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Make dashboard sections feel like one app */
+.sf-dashboard-card,.sf-achievement,.sf-fish-customizer,.sf-history-item{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.sf-dashboard-card:hover,.sf-achievement:hover,.sf-history-item:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(15,23,42,.07)}
+
+@media(max-width:700px){
+  .sf-topbar{padding:10px 12px!important}
+  .sf-topbar-inner{gap:8px!important}
+  .sf-nav{overflow-x:auto!important;max-width:100%!important;padding-bottom:2px}
+  .sf-nav-btn{white-space:nowrap!important;flex:0 0 auto!important}
+  .sf-main{padding:12px!important}
+  .sf-shell{width:100%!important}
+  .sf-hero{padding:24px 18px!important;border-radius:22px!important}
+  .sf-hero h1{font-size:29px!important}
+  .sf-dashboard-grid{grid-template-columns:1fr!important}
+  body > .hero{padding:0 12px!important;margin:8px auto 0!important}
+  .upload-box{padding:20px 16px!important}
+  .sf-section{margin-top:18px!important}
+  .sf-section-head{gap:8px!important;align-items:flex-start!important}
+  .sf-section-head h2{font-size:22px!important}
+  .sf-history-toolbar{margin-right:-2px}
+  .sf-history-item{padding:12px!important}
+  .sf-history-name strong{white-space:normal;line-height:1.35}
+}
+</style>
 
 </body>
 </html>
