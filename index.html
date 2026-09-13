@@ -1,6 +1,12 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="%232563eb"/><text x="32" y="46" text-anchor="middle" font-size="42">🐟</text></svg>'
+    />
+
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -402,6 +408,137 @@
       }
     }
 
+
+    .quiz-app {
+      margin-top: 18px;
+      width: 100%;
+    }
+
+    .quiz-counter {
+      text-align: center;
+      color: #64748b;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .quiz-question {
+      background: #ffffff;
+      border: 2px solid #bfdbfe;
+      border-radius: 20px;
+      padding: 24px;
+      font-size: 21px;
+      line-height: 1.45;
+      font-weight: 800;
+      color: #172554;
+      margin-bottom: 16px;
+    }
+
+    .quiz-options {
+      display: grid;
+      gap: 10px;
+    }
+
+    .quiz-option {
+      width: 100%;
+      padding: 15px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 14px;
+      background: white;
+      color: #172554;
+      text-align: left;
+      cursor: pointer;
+      font-size: 15px;
+      line-height: 1.45;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+    }
+
+    .quiz-option:hover:not(:disabled) {
+      border-color: #93c5fd;
+      transform: translateY(-1px);
+    }
+
+    .quiz-option:disabled {
+      cursor: default;
+    }
+
+    .quiz-option.correct {
+      border-color: #22c55e;
+      background: #f0fdf4;
+    }
+
+    .quiz-option.wrong {
+      border-color: #ef4444;
+      background: #fef2f2;
+    }
+
+    .quiz-feedback {
+      margin-top: 15px;
+      padding: 15px 16px;
+      border-radius: 14px;
+      line-height: 1.55;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      color: #334155;
+    }
+
+    .quiz-feedback.correct {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #166534;
+    }
+
+    .quiz-feedback.wrong {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #991b1b;
+    }
+
+    .quiz-next {
+      width: 100%;
+      margin-top: 15px;
+      background: #2563eb;
+      color: white;
+      padding: 13px 18px;
+    }
+
+    .quiz-next:hover {
+      background: #1d4ed8;
+    }
+
+    .quiz-result {
+      text-align: center;
+      padding: 25px 10px;
+    }
+
+    .quiz-score {
+      font-size: 38px;
+      font-weight: 900;
+      color: #2563eb;
+      margin: 12px 0;
+    }
+
+    .quiz-result p {
+      color: #64748b;
+      line-height: 1.6;
+    }
+
+    .quiz-restart {
+      margin-top: 16px;
+      background: #2563eb;
+      color: white;
+    }
+
+    @media (max-width: 600px) {
+      .quiz-question {
+        font-size: 18px;
+        padding: 18px;
+      }
+
+      .quiz-option {
+        font-size: 14px;
+      }
+    }
+
     .flashcards-app {
       margin-top: 18px;
     }
@@ -556,7 +693,7 @@
       <h2>Загрузи учебный материал</h2>
 
       <p>
-        PDF, DOC, DOCX or TXT
+        PDF, DOC, DOCX, TXT, JPG, PNG, WEBP — в том числе фото рукописных записей
       </p>
 
       <label for="fileInput">
@@ -569,11 +706,11 @@
       <input
         id="fileInput"
         type="file"
-        accept=".pdf,.doc,.docx,.txt,image/*"
+        accept=".pdf,.doc,.docx,.txt,image/jpeg,image/png,image/webp,image/gif"
       >
 
       <div class="status" id="uploadStatus">
-        Войти to upload your materials.
+        Войди в аккаунт, чтобы загружать материалы и фото.
       </div>
 
     </div>
@@ -624,7 +761,7 @@
 
     <div id="materialsList">
       <div class="empty">
-        Войти to see your materials.
+        Войди в аккаунт, чтобы увидеть свои материалы.
       </div>
     </div>
 
@@ -1311,22 +1448,25 @@
 
     aiTitle.textContent = titles[type] || "🤖 StudyFish AI";
     aiContent.className = "ai-loading";
-    aiContent.textContent = "🐟 StudyFish читает материал и готовит ответ...";
+    aiContent.textContent =
+      "🐟 StudyFish читает материал и готовит ответ...";
     aiModal.classList.add("active");
 
     try {
       let text = "";
       let imageUrl = null;
 
-      /*
-       * Для изображения НЕ скачиваем файл и НЕ отправляем Base64.
-       * Создаём временную защищённую ссылку Supabase на 5 минут.
-       */
       const isImage =
         (doc.file_type || "").startsWith("image/") ||
         /\.(jpg|jpeg|png|webp|gif)$/i.test(doc.file_name || "");
 
       if (isImage) {
+        /*
+         * ВАЖНО:
+         * Фото не превращаем в Base64 и не отправляем через Vercel.
+         * Создаём временную приватную ссылку Supabase на 5 минут.
+         * OpenAI получает изображение напрямую по этой ссылке.
+         */
         const {
           data: signedData,
           error: signedError
@@ -1336,7 +1476,7 @@
 
         if (signedError || !signedData?.signedUrl) {
           throw new Error(
-            "Не удалось создать временную ссылку на изображение: " +
+            "Не удалось открыть изображение: " +
             (signedError?.message || "неизвестная ошибка")
           );
         }
@@ -1346,10 +1486,12 @@
       } else {
         const file = await downloadMaterial(doc);
         text = await extractTextFromFile(file, doc.file_name);
-        text = text.trim();
+        text = (text || "").trim();
 
         if (!text) {
-          throw new Error("Не удалось найти текст в этом файле.");
+          throw new Error(
+            "Не удалось найти текст в этом файле."
+          );
         }
 
         const maxChars = 120000;
@@ -1372,12 +1514,12 @@
 
       const raw = await response.text();
 
-      let data;
+      let data = null;
 
       try {
         data = JSON.parse(raw);
       } catch (parseError) {
-        console.error("Server returned:", raw);
+        console.error("Non-JSON server response:", raw);
         throw new Error(
           raw || "Сервер вернул некорректный ответ."
         );
@@ -1385,18 +1527,81 @@
 
       if (!response.ok) {
         throw new Error(
-          data.error || "Не удалось получить ответ от AI."
+          data?.error ||
+          "Не удалось получить ответ от AI."
         );
       }
 
-      // Для карточек показываем интерактивный интерфейс.
-      if (type === "flashcards") {
+      /*
+       * -----------------------------
+       * ИНТЕРАКТИВНЫЙ ТЕСТ
+       * -----------------------------
+       */
+      if (type === "quiz") {
+        let questions = data.result;
+
+        if (typeof questions === "string") {
+          let cleaned = questions
+            .trim()
+            .replace(/^```json\s*/i, "")
+            .replace(/^```\s*/i, "")
+            .replace(/\s*```$/i, "")
+            .trim();
+
+          try {
+            questions = JSON.parse(cleaned);
+          } catch (parseError) {
+            const first = cleaned.indexOf("[");
+            const last = cleaned.lastIndexOf("]");
+
+            if (first !== -1 && last > first) {
+              try {
+                questions = JSON.parse(
+                  cleaned.slice(first, last + 1)
+                );
+              } catch (secondError) {
+                throw new Error(
+                  "AI вернул тест в неправильном формате."
+                );
+              }
+            } else {
+              throw new Error(
+                "AI вернул тест в неправильном формате."
+              );
+            }
+          }
+        }
+
+        if (
+          questions &&
+          !Array.isArray(questions) &&
+          Array.isArray(questions.questions)
+        ) {
+          questions = questions.questions;
+        }
+
+        if (
+          !Array.isArray(questions) ||
+          questions.length === 0
+        ) {
+          throw new Error(
+            "AI не создал вопросы для теста."
+          );
+        }
+
+        renderQuiz(questions);
+
+      /*
+       * -----------------------------
+       * ИНТЕРАКТИВНЫЕ КАРТОЧКИ
+       * -----------------------------
+       */
+      } else if (type === "flashcards") {
         let cards = data.result;
 
         if (typeof cards === "string") {
-          let cleaned = cards.trim();
-
-          cleaned = cleaned
+          let cleaned = cards
+            .trim()
             .replace(/^```json\s*/i, "")
             .replace(/^```\s*/i, "")
             .replace(/\s*```$/i, "")
@@ -1405,13 +1610,13 @@
           try {
             cards = JSON.parse(cleaned);
           } catch (parseError) {
-            const start = cleaned.indexOf("[");
-            const end = cleaned.lastIndexOf("]");
+            const first = cleaned.indexOf("[");
+            const last = cleaned.lastIndexOf("]");
 
-            if (start !== -1 && end > start) {
+            if (first !== -1 && last > first) {
               try {
                 cards = JSON.parse(
-                  cleaned.slice(start, end + 1)
+                  cleaned.slice(first, last + 1)
                 );
               } catch (secondError) {
                 throw new Error(
@@ -1443,30 +1648,377 @@
       } else {
         aiContent.className = "ai-result";
         aiContent.textContent =
-          data.result || "AI не вернул результат.";
+          data.result ||
+          "AI не вернул результат.";
       }
 
-      // Сохраняем результат в Supabase.
+      /*
+       * Сохраняем результат в Supabase.
+       */
       const {
         data: { user }
       } = await supabaseClient.auth.getUser();
 
       if (user && data.result) {
-        await supabaseClient.from("study_results").insert({
-          user_id: user.id,
-          document_id: doc.id,
-          result_type: type,
-          content: data.result
-        });
+        const { error: saveError } =
+          await supabaseClient
+            .from("study_results")
+            .insert({
+              user_id: user.id,
+              document_id: doc.id,
+              result_type: type,
+              content: data.result
+            });
+
+        if (saveError) {
+          console.warn(
+            "Не удалось сохранить результат:",
+            saveError
+          );
+        }
       }
 
     } catch (error) {
-      console.error(error);
+      console.error("StudyFish AI error:", error);
+
       aiContent.className = "ai-result";
       aiContent.textContent =
         "Не удалось обработать материал.\n\n" +
-        (error.message || "Неизвестная ошибка.");
+        (error?.message ||
+          "Произошла неизвестная ошибка.");
     }
+  }
+
+
+  /* ==============================
+     INTERACTIVE QUIZ
+  ============================== */
+
+  function renderQuiz(questions) {
+    const safeQuestions = questions
+      .filter(q =>
+        q &&
+        typeof q.question === "string" &&
+        Array.isArray(q.options)
+      )
+      .map(q => {
+        const options = q.options
+          .map(option => String(option).trim())
+          .filter(Boolean);
+
+        let correctIndex = Number.isInteger(q.correctIndex)
+          ? q.correctIndex
+          : -1;
+
+        if (
+          correctIndex < 0 ||
+          correctIndex >= options.length
+        ) {
+          if (typeof q.correctIndex === "string") {
+            const numeric = Number(q.correctIndex);
+            if (
+              Number.isInteger(numeric) &&
+              numeric >= 0 &&
+              numeric < options.length
+            ) {
+              correctIndex = numeric;
+            }
+          }
+        }
+
+        if (
+          correctIndex < 0 ||
+          correctIndex >= options.length
+        ) {
+          const candidates = [
+            q.correctAnswer,
+            q.correct,
+            q.answer
+          ];
+
+          for (const candidate of candidates) {
+            if (typeof candidate === "number") {
+              if (
+                candidate >= 0 &&
+                candidate < options.length
+              ) {
+                correctIndex = candidate;
+                break;
+              }
+
+              if (
+                candidate >= 1 &&
+                candidate <= options.length
+              ) {
+                correctIndex = candidate - 1;
+                break;
+              }
+            }
+
+            if (typeof candidate === "string") {
+              const normalized = candidate
+                .trim()
+                .toLowerCase();
+
+              const found = options.findIndex(
+                option =>
+                  option.toLowerCase() === normalized
+              );
+
+              if (found !== -1) {
+                correctIndex = found;
+                break;
+              }
+
+              const letter = normalized.match(
+                /^[a-d]$/i
+              );
+
+              if (letter) {
+                correctIndex =
+                  letter[0].toUpperCase().charCodeAt(0) -
+                  65;
+                break;
+              }
+            }
+          }
+        }
+
+        return {
+          question: q.question.trim(),
+          options,
+          correctIndex,
+          explanation:
+            typeof q.explanation === "string"
+              ? q.explanation.trim()
+              : ""
+        };
+      })
+      .filter(q =>
+        q.question &&
+        q.options.length >= 2 &&
+        q.correctIndex >= 0 &&
+        q.correctIndex < q.options.length
+      );
+
+    if (!safeQuestions.length) {
+      throw new Error(
+        "AI не вернул корректные вопросы для теста."
+      );
+    }
+
+    let current = 0;
+    let score = 0;
+    let answered = false;
+
+    aiContent.className = "quiz-app";
+    aiContent.innerHTML = "";
+
+    const counter =
+      window.document.createElement("div");
+    counter.className = "quiz-counter";
+
+    const questionBox =
+      window.document.createElement("div");
+    questionBox.className = "quiz-question";
+
+    const optionsBox =
+      window.document.createElement("div");
+    optionsBox.className = "quiz-options";
+
+    const feedback =
+      window.document.createElement("div");
+    feedback.className = "quiz-feedback";
+    feedback.style.display = "none";
+
+    const nextButton =
+      window.document.createElement("button");
+    nextButton.className = "quiz-next";
+    nextButton.type = "button";
+    nextButton.textContent =
+      "Следующий вопрос →";
+    nextButton.style.display = "none";
+
+    aiContent.appendChild(counter);
+    aiContent.appendChild(questionBox);
+    aiContent.appendChild(optionsBox);
+    aiContent.appendChild(feedback);
+    aiContent.appendChild(nextButton);
+
+    function showResult() {
+      aiContent.className = "quiz-result";
+      aiContent.innerHTML = "";
+
+      const title =
+        window.document.createElement("h2");
+      title.textContent =
+        "🎉 Тест завершён!";
+
+      const scoreText =
+        window.document.createElement("div");
+      scoreText.className = "quiz-score";
+      scoreText.textContent =
+        `${score} из ${safeQuestions.length}`;
+
+      const percent = Math.round(
+        (score / safeQuestions.length) * 100
+      );
+
+      const message =
+        window.document.createElement("p");
+
+      if (percent === 100) {
+        message.textContent =
+          "Идеально! Ты отлично знаешь материал 🐟";
+      } else if (percent >= 80) {
+        message.textContent =
+          "Отличный результат! Так держать!";
+      } else if (percent >= 60) {
+        message.textContent =
+          "Хорошо! Ещё немного практики — и будет отлично.";
+      } else {
+        message.textContent =
+          "Повтори материал и попробуй пройти тест ещё раз.";
+      }
+
+      const restart =
+        window.document.createElement("button");
+      restart.className = "quiz-restart";
+      restart.type = "button";
+      restart.textContent =
+        "Пройти ещё раз";
+
+      restart.addEventListener("click", () => {
+        current = 0;
+        score = 0;
+        answered = false;
+        aiContent.className = "quiz-app";
+        aiContent.innerHTML = "";
+
+        aiContent.appendChild(counter);
+        aiContent.appendChild(questionBox);
+        aiContent.appendChild(optionsBox);
+        aiContent.appendChild(feedback);
+        aiContent.appendChild(nextButton);
+
+        updateQuestion();
+      });
+
+      aiContent.appendChild(title);
+      aiContent.appendChild(scoreText);
+      aiContent.appendChild(message);
+      aiContent.appendChild(restart);
+    }
+
+    function updateQuestion() {
+      if (current >= safeQuestions.length) {
+        showResult();
+        return;
+      }
+
+      const item = safeQuestions[current];
+      answered = false;
+
+      counter.textContent =
+        `Вопрос ${current + 1} из ${safeQuestions.length}`;
+
+      questionBox.textContent =
+        item.question;
+
+      optionsBox.innerHTML = "";
+
+      feedback.style.display = "none";
+      feedback.className =
+        "quiz-feedback";
+
+      nextButton.style.display = "none";
+      nextButton.textContent =
+        current === safeQuestions.length - 1
+          ? "Показать результат"
+          : "Следующий вопрос →";
+
+      item.options.forEach(
+        (optionText, index) => {
+          const button =
+            window.document.createElement("button");
+
+          button.className = "quiz-option";
+          button.type = "button";
+
+          button.textContent =
+            `${String.fromCharCode(65 + index)}. ${optionText}`;
+
+          button.addEventListener("click", () => {
+            if (answered) return;
+
+            answered = true;
+
+            const allOptions =
+              Array.from(optionsBox.children);
+
+            allOptions.forEach(option => {
+              option.disabled = true;
+            });
+
+            const isCorrect =
+              index === item.correctIndex;
+
+            if (isCorrect) {
+              score++;
+              button.classList.add("correct");
+
+              feedback.className =
+                "quiz-feedback correct";
+
+              feedback.textContent =
+                "✅ Правильно!" +
+                (
+                  item.explanation
+                    ? " " + item.explanation
+                    : ""
+                );
+
+            } else {
+              button.classList.add("wrong");
+
+              const correctButton =
+                allOptions[item.correctIndex];
+
+              if (correctButton) {
+                correctButton.classList.add("correct");
+              }
+
+              feedback.className =
+                "quiz-feedback wrong";
+
+              feedback.textContent =
+                "❌ Неправильно." +
+                (
+                  item.explanation
+                    ? " " + item.explanation
+                    : ""
+                );
+            }
+
+            feedback.style.display =
+              "block";
+
+            nextButton.style.display =
+              "block";
+          });
+
+          optionsBox.appendChild(button);
+        }
+      );
+    }
+
+    nextButton.addEventListener("click", () => {
+      if (!answered) return;
+      current++;
+      updateQuestion();
+    });
+
+    updateQuestion();
   }
 
 
