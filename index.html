@@ -1238,7 +1238,7 @@
       </a>
       <nav class="sf-nav" aria-label="Навигация">
         <button class="sf-nav-btn active" type="button" onclick="document.getElementById('studyfish-dashboard')?.scrollIntoView({behavior:'smooth'})">Главная</button>
-        <button class="sf-nav-btn" type="button" onclick="document.getElementById('materials')?.scrollIntoView({behavior:'smooth'})">Мои материалы</button>
+        <button class="sf-nav-btn" type="button" onclick="document.getElementById('studyfish-materials')?.scrollIntoView({behavior:'smooth'})">Мои материалы</button>
         <button class="sf-nav-btn" type="button" onclick="document.getElementById('studyfish-history')?.scrollIntoView({behavior:'smooth'})">История</button>
       </nav>
     </div>
@@ -1278,29 +1278,6 @@
         </div>
       </section>
 
-
-      <section class="sf-section" id="studyfish-achievements">
-        <div class="sf-section-head">
-          <h2>🏆 Достижения</h2>
-          <span>Открывай новые образы рыбки</span>
-        </div>
-
-        <div class="sf-fish-customizer">
-          <div class="sf-fish-preview" id="sf-fish-preview">
-            <span class="sf-fish-hat" id="sf-fish-hat"></span>
-            🐟
-          </div>
-          <div>
-            <strong style="display:block;color:var(--sf-ink);font-size:16px;margin-bottom:6px;">Твой образ StudyFish</strong>
-            <p style="margin:0 0 12px;color:var(--sf-muted);font-size:13px;line-height:1.5;">
-              Выполняй учебные действия и открывай новые шапочки и фоны.
-            </p>
-            <div class="sf-custom-options" id="sf-custom-options"></div>
-          </div>
-        </div>
-
-        <div class="sf-achievements" id="sf-achievements-list" style="margin-top:14px;"></div>
-      </section>
 
       <section class="sf-section" id="studyfish-history">
         <div class="sf-section-head">
@@ -1411,7 +1388,7 @@
   </section>
 
 
-  <section class="materials">
+  <section class="materials" id="studyfish-materials">
 
     <h2>Мои материалы</h2>
 
@@ -1422,6 +1399,31 @@
     </div>
 
   </section>
+
+
+      <section class="sf-section" id="studyfish-achievements">
+        <div class="sf-section-head">
+          <h2>🏆 Достижения</h2>
+          <span>Открывай новые образы рыбки</span>
+        </div>
+
+        <div class="sf-fish-customizer">
+          <div class="sf-fish-preview" id="sf-fish-preview">
+            <span class="sf-fish-hat" id="sf-fish-hat"></span>
+            🐟
+          </div>
+          <div>
+            <strong style="display:block;color:var(--sf-ink);font-size:16px;margin-bottom:6px;">Твой образ StudyFish</strong>
+            <p style="margin:0 0 12px;color:var(--sf-muted);font-size:13px;line-height:1.5;">
+              Выполняй учебные действия и открывай новые шапочки и фоны.
+            </p>
+            <div class="sf-custom-options" id="sf-custom-options"></div>
+          </div>
+        </div>
+
+        <div class="sf-achievements" id="sf-achievements-list" style="margin-top:14px;"></div>
+      </section>
+
 
 
   <!-- AUTH MODAL -->
@@ -1960,6 +1962,11 @@
       return;
     }
 
+    // Достижения считаем по реальным материалам пользователя.
+    if (window.studyFishUnlock) {
+      if (data.length >= 1) window.studyFishUnlock("first_material");
+      if (data.length >= 3) window.studyFishUnlock("three_materials");
+    }
 
     materialsList.innerHTML = "";
 
@@ -2008,6 +2015,11 @@
       podcastButton.addEventListener("click", () =>
         generatePodcast(doc)
       );
+
+      // Показываем ВСЕ четыре инструмента в карточке материала.
+      actions.appendChild(summaryButton);
+      actions.appendChild(quizButton);
+      actions.appendChild(flashcardsButton);
       actions.appendChild(podcastButton);
 
       info.appendChild(name);
@@ -2253,6 +2265,10 @@
 
         renderQuiz(questions);
 
+        if (window.studyFishUnlock) {
+          window.studyFishUnlock("first_test");
+        }
+
       /*
        * -----------------------------
        * ИНТЕРАКТИВНЫЕ КАРТОЧКИ
@@ -2306,6 +2322,10 @@
         }
 
         renderFlashcards(cards);
+
+        if (window.studyFishUnlock) {
+          window.studyFishUnlock("first_cards");
+        }
 
       } else {
         aiContent.className = "ai-result";
@@ -3268,6 +3288,8 @@
     if (!list) return;
 
     const candidates = [
+      document.getElementById("materialsList"),
+      document.querySelector("#studyfish-materials"),
       document.querySelector("#materials"),
       document.querySelector(".materials-list"),
       document.querySelector(".materials-container")
@@ -3276,7 +3298,7 @@
     let cards = [];
     for (const root of candidates) {
       cards = Array.from(root.querySelectorAll(
-        ".material-card, .document-card, [data-document-id]"
+        ".material, .material-card, .document-card, [data-document-id]"
       ));
       if (cards.length) break;
     }
@@ -3306,6 +3328,8 @@
     updateStudyFishHistory();
     const observer = new MutationObserver(() => updateStudyFishHistory());
     const target =
+      document.getElementById("materialsList") ||
+      document.querySelector("#studyfish-materials") ||
       document.querySelector("#materials") ||
       document.querySelector(".materials-list") ||
       document.body;
@@ -3420,6 +3444,7 @@
     // First material achievements are based on the existing material cards.
     const countMaterials = () => {
       const roots = [
+        document.getElementById("materialsList"),
         document.querySelector("#materials"),
         document.querySelector(".materials-list"),
         document.querySelector(".materials-container")
@@ -3427,7 +3452,9 @@
 
       let count = 0;
       for (const root of roots) {
-        const cards = root.querySelectorAll(".material-card, .document-card, [data-document-id]");
+        const cards = root.querySelectorAll(
+          ".material, .material-card, .document-card, [data-document-id]"
+        );
         if (cards.length) { count = cards.length; break; }
       }
 
