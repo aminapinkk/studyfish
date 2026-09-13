@@ -11,14 +11,15 @@ export default async function handler(req, res) {
     const {
       type,
       text,
-      imageData
+      imageUrl
     } = req.body || {};
 
-    if (!text?.trim() && !imageData) {
+    if (!text?.trim() && !imageUrl) {
       return res.status(400).json({
         error: "Учебный материал пустой."
       });
     }
+
 
     const prompts = {
 
@@ -54,7 +55,7 @@ export default async function handler(req, res) {
 
 Создай 10 вопросов для интерактивного теста.
 
-Для каждого вопроса используй:
+Для каждого вопроса:
 
 {
   "question": "Текст вопроса",
@@ -77,7 +78,6 @@ correctIndex:
 
 Верни ТОЛЬКО JSON-массив.
 
-Не добавляй ```json.
 Не добавляй текст до или после JSON.
 
 Используй только информацию
@@ -103,8 +103,6 @@ correctIndex:
   }
 ]
 
-Не добавляй ```json.
-
 Не добавляй текст до или после JSON.
 
 Используй только информацию
@@ -112,6 +110,7 @@ correctIndex:
 
 Пиши на русском языке.
 `
+
     };
 
 
@@ -123,7 +122,11 @@ correctIndex:
     let input;
 
 
-    if (imageData) {
+    /*
+      ФОТО
+    */
+
+    if (imageUrl) {
 
       input = [
         {
@@ -138,14 +141,21 @@ correctIndex:
 
             {
               type: "input_image",
-              image_url: imageData
+              image_url: imageUrl
             }
 
           ]
         }
       ];
 
-    } else {
+    }
+
+
+    /*
+      ТЕКСТ / PDF / DOCX / TXT
+    */
+
+    else {
 
       input =
         instruction +
@@ -177,6 +187,7 @@ correctIndex:
 
             max_output_tokens:
               4000
+
           })
         }
       );
@@ -188,6 +199,7 @@ correctIndex:
 
     let data;
 
+
     try {
 
       data =
@@ -196,7 +208,7 @@ correctIndex:
     } catch (error) {
 
       console.error(
-        "OpenAI returned non-JSON:",
+        "OpenAI non-JSON response:",
         rawText
       );
 
@@ -204,13 +216,8 @@ correctIndex:
         error:
           "OpenAI вернул некорректный ответ."
       });
+
     }
-
-
-    console.log(
-      "OpenAI response:",
-      JSON.stringify(data)
-    );
 
 
     if (!response.ok) {
@@ -223,10 +230,13 @@ correctIndex:
       return res.status(
         response.status
       ).json({
+
         error:
           data?.error?.message ||
           "Ошибка OpenAI."
+
       });
+
     }
 
 
@@ -240,6 +250,7 @@ correctIndex:
 
       result =
         data.output_text;
+
     }
 
 
@@ -257,6 +268,7 @@ correctIndex:
             item.content
           )
         ) {
+
           continue;
         }
 
@@ -275,9 +287,13 @@ correctIndex:
 
             result +=
               content.text;
+
           }
+
         }
+
       }
+
     }
 
 
@@ -291,12 +307,13 @@ correctIndex:
         error:
           "AI не вернул результат."
       });
+
     }
 
 
     /*
-      Проверяем JSON для теста
-      и карточек.
+      Проверяем JSON
+      для теста и карточек.
     */
 
     if (
@@ -351,7 +368,9 @@ correctIndex:
               );
 
           } catch (e) {}
+
         }
+
       }
 
 
@@ -361,11 +380,13 @@ correctIndex:
           error:
             "AI вернул данные в неправильном формате."
         });
+
       }
 
 
       result =
         JSON.stringify(parsed);
+
     }
 
 
@@ -377,15 +398,19 @@ correctIndex:
   } catch (error) {
 
     console.error(
-      "Server error:",
+      "SERVER ERROR:",
       error
     );
 
 
     return res.status(500).json({
+
       error:
         error?.message ||
         "Server error"
+
     });
+
   }
+
 }
