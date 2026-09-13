@@ -794,6 +794,11 @@
 
     body {
       background: var(--sf-bg);
+      transition: background .35s ease;
+    }
+
+    .sf-main {
+      background: transparent !important;
     }
 
     .sf-shell {
@@ -2183,9 +2188,29 @@
         const page = await pdf.getPage(pageNumber);
         const content = await page.getTextContent();
 
-        text += content.items
-          .map(item => item.str)
-          .join(" ") + "\n\n";
+        // Сохраняем строки PDF, а не склеиваем весь лист в один абзац.
+        // Это особенно важно для заголовков, определений и списков.
+        const rows = [];
+        for (const item of content.items) {
+          const value = String(item.str || "").trim();
+          if (!value) continue;
+          const x = Number(item.transform?.[4] || 0);
+          const y = Number(item.transform?.[5] || 0);
+          let row = rows.find(r => Math.abs(r.y - y) <= 3);
+          if (!row) {
+            row = { y, items: [] };
+            rows.push(row);
+          }
+          row.items.push({ x, value });
+        }
+
+        rows.sort((a, b) => b.y - a.y);
+        text += rows.map(row =>
+          row.items
+            .sort((a, b) => a.x - b.x)
+            .map(item => item.value)
+            .join(" ")
+        ).join("\n") + "\n\n";
       }
 
       return text;
@@ -2270,29 +2295,37 @@
     const lines = localImportantLines(text);
     const items = [];
     const seen = new Set();
-    const patterns = [
-      /^(.{2,70}?)\s*[—–-]\s*(.{25,220})$/,
-      /^(.{2,70}?)\s*[:]\s*(.{25,220})$/,
-      /^(?:это|это\s+есть)\s+(.{25,220})$/i
-    ];
+    const badStarts = /^(основы|содержание|урок|тема|задание|практическая работа|самостоятельная работа|информатика|введение|заключение|пример|примеры|вопросы|ответы)\b/i;
 
     for (const line of lines) {
+      const normalized = line.replace(/\s+/g, " ").trim();
+      if (normalized.length < 25 || normalized.length > 280) continue;
+      if (/^[0-9]+[.)]\s/.test(normalized)) continue;
+
+      const patterns = [
+        /^(.{2,65}?)\s*[—–]\s*(.{25,220})$/,
+        /^(.{2,65}?)\s*:\s*(.{25,220})$/,
+        /^(.{2,65}?)\s+—\s+это\s+(.{20,220})$/i
+      ];
+
       for (const re of patterns) {
-        const m = line.match(re);
+        const m = normalized.match(re);
         if (!m) continue;
-        let term, definition;
-        if (re === patterns[2]) {
-          term = line.split(/\s+/).slice(0, 4).join(' ');
-          definition = m[1];
-        } else {
-          term = m[1].trim();
-          definition = m[2].trim();
-        }
-        if (term.length < 2 || definition.length < 20) continue;
+
+        const term = m[1].trim();
+        const definition = m[2].trim();
+        const termWords = term.split(/\s+/).filter(Boolean);
+
+        // Не превращаем заголовки страниц и длинные названия уроков в термины.
+        if (termWords.length > 8 || term.length > 60) continue;
+        if (badStarts.test(term)) continue;
+        if (/[.!?]{2,}/.test(term)) continue;
+        if (definition.length < 20) continue;
+
         const key = term.toLowerCase();
         if (seen.has(key)) continue;
         seen.add(key);
-        items.push({term, definition, source: line});
+        items.push({ term, definition, source: normalized });
         break;
       }
       if (items.length >= 12) break;
@@ -2321,53 +2354,52 @@
 
   function buildLocalQuiz(text) {
     const clean = localCleanText(text);
-    const sentences = localSentences(clean).filter(s => s.length >= 45 && s.length <= 280);
     const defs = localTermsAndDefinitions(clean);
+    const sentences = localSentences(clean)
+      .filter(s => s.length >= 55 && s.length <= 240)
+      .filter(s => !/^основы\s+html/i.test(s));
     const questions = [];
     const used = new Set();
 
-    // Бесплатный режим должен строить тест из СМЫСЛА материала.
-    // Сначала используем пары «термин → определение» и перемешиваем
-    // определения других терминов как правдоподобные варианты ответа.
-    if (defs.length >= 4) {
-      for (let i = 0; i < defs.length && questions.length < 10; i++) {
-        const item = defs[i];
-        const key = item.term.toLowerCase();
-        if (used.has(key)) continue;
+    // Сначала — самые надёжные вопросы «термин → определение».
+    for (let i = 0; i < defs.length && questions.length < 10; i++) {
+      const item = defs[i];
+      const key = item.term.toLowerCase();
+      if (used.has(key)) continue;
 
-        const others = defs
-          .filter((x, idx) => idx !== i && x.term.toLowerCase() !== key)
-          .slice(0, 3)
-          .map(x => x.definition);
+      const distractors = defs
+        .filter((x, idx) => idx !== i && x.term.toLowerCase() !== key)
+        .map(x => x.definition)
+        .filter((value, idx, arr) => arr.indexOf(value) === idx)
+        .slice(0, 3);
 
-        if (others.length < 3) continue;
-        const options = [item.definition, ...others];
-        for (let j = options.length - 1; j > 0; j--) {
-          const k = Math.floor(Math.random() * (j + 1));
-          [options[j], options[k]] = [options[k], options[j]];
-        }
-        used.add(key);
-        questions.push({
-          question: `Что такое «${item.term}»?`,
-          options,
-          correctIndex: options.indexOf(item.definition),
-          explanation: `В материале «${item.term}» определяется так: ${item.definition}`
-        });
+      if (distractors.length < 3) continue;
+
+      const options = [item.definition, ...distractors];
+      for (let j = options.length - 1; j > 0; j--) {
+        const k = Math.floor(Math.random() * (j + 1));
+        [options[j], options[k]] = [options[k], options[j]];
       }
+
+      used.add(key);
+      questions.push({
+        question: `Что означает понятие «${item.term}»?`,
+        options,
+        correctIndex: options.indexOf(item.definition),
+        explanation: item.definition
+      });
     }
 
-    // Второй уровень: вопросы на понимание конкретных утверждений.
-    // Варианты берутся из самого материала, а не генерируются случайными словами.
-    for (const sentence of sentences) {
-      if (questions.length >= 10) break;
-      const words = sentence.match(/[А-ЯЁа-яёA-Za-z][А-ЯЁа-яёA-Za-z0-9-]{3,}/g) || [];
-      const anchor = words.find(w => w.length >= 5);
-      if (!anchor) continue;
-      const key = `sentence:${sentence.toLowerCase()}`;
+    // Если в документе мало явных определений, используем только законченные
+    // содержательные предложения. Вопрос не маскирует случайное слово.
+    for (let i = 0; i < sentences.length && questions.length < 10; i++) {
+      const sentence = sentences[i];
+      const key = sentence.toLowerCase();
       if (used.has(key)) continue;
 
       const alternatives = sentences
-        .filter(x => x !== sentence && !x.toLowerCase().includes(anchor.toLowerCase()))
+        .filter((x, idx) => idx !== i && x.toLowerCase() !== key)
+        .filter(x => Math.abs(x.length - sentence.length) < 110)
         .slice(0, 3);
       if (alternatives.length < 3) continue;
 
@@ -2376,16 +2408,17 @@
         const k = Math.floor(Math.random() * (j + 1));
         [options[j], options[k]] = [options[k], options[j]];
       }
+
       used.add(key);
       questions.push({
-        question: `Какое утверждение точно описывает «${anchor}»?`,
+        question: `Какое утверждение соответствует учебному материалу?`,
         options,
         correctIndex: options.indexOf(sentence),
-        explanation: `Это утверждение напрямую содержит «${anchor}» и взято из учебного материала.`
+        explanation: `В учебном материале это утверждение сформулировано именно так.`
       });
     }
 
-    if (!questions.length) {
+    if (questions.length < 3) {
       throw new Error('В материале недостаточно структурированного текста для качественного теста.');
     }
     return questions.slice(0, 10);
@@ -2394,11 +2427,13 @@
   function buildLocalFlashcards(text) {
     const clean = localCleanText(text);
     const defs = localTermsAndDefinitions(clean);
-    const sentences = localSentences(clean).filter(s => s.length >= 45 && s.length <= 280);
+    const sentences = localSentences(clean)
+      .filter(s => s.length >= 55 && s.length <= 240)
+      .filter(s => !/^основы\s+html/i.test(s));
     const result = [];
     const seen = new Set();
 
-    // Карточки прежде всего строятся как реальные пары «термин → определение».
+    // 1. Настоящие учебные пары термин → определение.
     for (const item of defs) {
       const key = item.term.toLowerCase();
       if (seen.has(key)) continue;
@@ -2410,23 +2445,20 @@
       if (result.length >= 10) break;
     }
 
-    // Если определений мало, добавляем карточки по главным законченным утверждениям.
-    // Не вырезаем случайные слова и не подменяем содержание.
+    // 2. Если определений мало — сохраняем смысл целого утверждения,
+    // но не подставляем случайное слово в вопрос.
     for (const sentence of sentences) {
       if (result.length >= 10) break;
       const key = sentence.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
-
-      const words = sentence.match(/[А-ЯЁа-яёA-Za-z][А-ЯЁа-яёA-Za-z0-9-]{4,}/g) || [];
-      const topic = words.find(w => !/^(это|также|которые|который|можно|если|для|при|после|перед|через|между|когда)$/i.test(w)) || 'этой темы';
       result.push({
-        question: `Что нужно запомнить о «${topic}»?`,
+        question: `Какое важное утверждение нужно запомнить?`,
         answer: sentence
       });
     }
 
-    if (!result.length) {
+    if (result.length < 3) {
       throw new Error('В материале недостаточно текста для создания карточек.');
     }
     return result.slice(0, 10);
@@ -3868,7 +3900,13 @@
     const custom = getCustom();
     preview.style.background = custom.bg;
     hat.textContent = custom.hat || "";
-    if (main) main.style.background = custom.screenBg;
+
+    // Фон достижения должен применяться ко всей странице, а не только
+    // к маленькому блоку Dashboard. Так выбранный фон действительно
+    // виден на Главной, загрузке, материалах и истории.
+    document.body.style.background = custom.screenBg;
+    document.documentElement.style.setProperty("--sf-page-bg", custom.screenBg);
+    if (main) main.style.background = "transparent";
 
     const unlocked = ACHIEVEMENTS.filter(a => isUnlocked(a));
     const hatChoices = [
@@ -4084,6 +4122,22 @@ body > .hero .upload-btn{min-width:230px!important;min-height:50px!important;fon
   body > .hero .upload-btn{min-width:200px!important;}
   .materials,#studyfish-achievements,#studyfish-history{width:calc(100% - 24px)!important;}
   .sf-history-clear{margin-left:0!important;}
+}
+</style>
+
+<style id="studyfish-spacing-fix">
+/* Убираем искусственную высоту Dashboard: загрузка должна быть сразу под верхним блоком. */
+.sf-main{min-height:0!important;height:auto!important;padding-bottom:0!important;}
+.sf-shell{height:auto!important;}
+.sf-hero{margin-bottom:12px!important;padding:18px 24px!important;}
+.sf-section{margin-top:12px!important;}
+body > .hero{margin-top:14px!important;}
+body > .hero .upload-box{min-height:300px!important;}
+@media(max-width:700px){
+  .sf-hero{padding:16px 18px!important;margin-bottom:8px!important;}
+  .sf-section{margin-top:10px!important;}
+  body > .hero{margin-top:10px!important;}
+  body > .hero .upload-box{min-height:270px!important;}
 }
 </style>
 </body>
