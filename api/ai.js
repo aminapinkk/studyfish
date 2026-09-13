@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-
   if (req.method !== "POST") {
     return res.status(405).json({
       error: "Method not allowed"
@@ -7,26 +6,73 @@ export default async function handler(req, res) {
   }
 
   try {
-
     const {
       type,
-      text,
-      imageUrl
+      text = "",
+      imageUrl = null
     } = req.body || {};
 
-    if (!text?.trim() && !imageUrl) {
+    const cleanText =
+      typeof text === "string"
+        ? text.trim()
+        : "";
+
+    if (!cleanText && !imageUrl) {
       return res.status(400).json({
         error: "Учебный материал пустой."
       });
     }
 
+    if (!process.env.OPENAI_API_KEY) {
+      console.error("OPENAI_API_KEY is missing");
+
+      return res.status(500).json({
+        error: "На сервере не настроен OPENAI_API_KEY."
+      });
+    }
+
+    /*
+     * Проверяем ссылку на изображение.
+     * Разрешаем только наш Supabase Storage.
+     */
+    if (imageUrl) {
+      let parsedUrl;
+
+      try {
+        parsedUrl = new URL(imageUrl);
+      } catch (error) {
+        return res.status(400).json({
+          error: "Некорректная ссылка на изображение."
+        });
+      }
+
+      const allowedOrigin =
+        "https://skgujqnfmzaunpdrattg.supabase.co";
+
+      if (parsedUrl.origin !== allowedOrigin) {
+        return res.status(400).json({
+          error: "Недопустимый источник изображения."
+        });
+      }
+    }
 
     const prompts = {
 
       summary: `
 Ты — AI-помощник для учёбы StudyFish.
 
-Изучи предоставленный учебный материал или изображение.
+Изучи предоставленный учебный материал.
+
+Если это изображение, внимательно прочитай весь
+видимый текст на изображении.
+
+ВАЖНО:
+- Распознавай как печатный, так и рукописный текст.
+- Старайся восстановить слова по контексту,
+  если почерк сложный.
+- Не придумывай текст, которого нет на изображении.
+- Если часть текста невозможно разобрать,
+  честно укажи это.
 
 Сделай понятный и полезный конспект.
 
@@ -36,9 +82,6 @@ export default async function handler(req, res) {
 2. Ключевые понятия
 3. Важные факты
 4. Что нужно запомнить
-
-Если материал находится на фотографии,
-внимательно прочитай весь видимый текст.
 
 Пиши на русском языке.
 
@@ -51,11 +94,22 @@ export default async function handler(req, res) {
       quiz: `
 Ты — AI-преподаватель StudyFish.
 
-Изучи предоставленный учебный материал или изображение.
+Изучи предоставленный учебный материал.
 
-Создай 10 вопросов для интерактивного теста.
+Если это изображение, внимательно прочитай весь
+видимый текст.
 
-Для каждого вопроса:
+ВАЖНО:
+- Распознавай печатный и рукописный текст.
+- Если почерк сложный, используй контекст
+  для чтения.
+- Не придумывай информацию,
+  которой нет в материале.
+
+Создай 10 вопросов
+для интерактивного теста.
+
+Для каждого вопроса используй строго такой формат:
 
 {
   "question": "Текст вопроса",
@@ -69,14 +123,16 @@ export default async function handler(req, res) {
   "explanation": "Короткое объяснение"
 }
 
-correctIndex:
+Правила correctIndex:
 
-0 = первый вариант
-1 = второй вариант
-2 = третий вариант
-3 = четвёртый вариант
+0 — первый вариант
+1 — второй вариант
+2 — третий вариант
+3 — четвёртый вариант
 
 Верни ТОЛЬКО JSON-массив.
+
+Не добавляй markdown.
 
 Не добавляй текст до или после JSON.
 
@@ -89,12 +145,19 @@ correctIndex:
       flashcards: `
 Ты — AI-помощник для учёбы StudyFish.
 
-Изучи предоставленный учебный материал
-или изображение.
+Изучи предоставленный учебный материал.
+
+Если это изображение, внимательно прочитай весь
+видимый текст.
+
+ВАЖНО:
+- Распознавай печатный и рукописный текст.
+- Не придумывай информацию,
+  которой нет в материале.
 
 Создай 10 учебных карточек.
 
-Верни ТОЛЬКО JSON:
+Верни ТОЛЬКО JSON-массив такого вида:
 
 [
   {
@@ -103,6 +166,8 @@ correctIndex:
   }
 ]
 
+Не добавляй markdown.
+
 Не добавляй текст до или после JSON.
 
 Используй только информацию
@@ -110,22 +175,28 @@ correctIndex:
 
 Пиши на русском языке.
 `
-
     };
-
 
     const instruction =
       prompts[type] ||
-      "Помоги ученику разобраться в учебном материале.";
+      `
+Ты — AI-помощник StudyFish.
 
+Помоги ученику разобраться
+в предоставленном учебном материале.
+
+Пиши на русском языке.
+
+Используй только информацию
+из материала.
+`;
 
     let input;
 
-
     /*
-      ФОТО
-    */
-
+     * Если есть изображение,
+     * передаём его в OpenAI как input_image.
+     */
     if (imageUrl) {
 
       input = [
@@ -148,23 +219,21 @@ correctIndex:
         }
       ];
 
-    }
+    } else {
 
-
-    /*
-      ТЕКСТ / PDF / DOCX / TXT
-    */
-
-    else {
-
+      /*
+       * PDF / DOCX / TXT.
+       */
       input =
         instruction +
         "\n\nУЧЕБНЫЙ МАТЕРИАЛ:\n" +
-        text;
+        cleanText;
     }
 
-
-    const response =
+    /*
+     * Запрос к OpenAI Responses API.
+     */
+    const openaiResponse =
       await fetch(
         "https://api.openai.com/v1/responses",
         {
@@ -192,13 +261,15 @@ correctIndex:
         }
       );
 
-
+    /*
+     * Читаем ответ как текст,
+     * чтобы сервер не падал,
+     * если OpenAI вернул ошибку.
+     */
     const rawText =
-      await response.text();
-
+      await openaiResponse.text();
 
     let data;
-
 
     try {
 
@@ -212,23 +283,24 @@ correctIndex:
         rawText
       );
 
-      return res.status(500).json({
+      return res.status(502).json({
         error:
           "OpenAI вернул некорректный ответ."
       });
-
     }
 
-
-    if (!response.ok) {
+    /*
+     * Ошибка OpenAI.
+     */
+    if (!openaiResponse.ok) {
 
       console.error(
-        "OpenAI error:",
+        "OpenAI API error:",
         data
       );
 
       return res.status(
-        response.status
+        openaiResponse.status
       ).json({
 
         error:
@@ -236,12 +308,12 @@ correctIndex:
           "Ошибка OpenAI."
 
       });
-
     }
 
-
+    /*
+     * Получаем текст ответа.
+     */
     let result = "";
-
 
     if (
       typeof data.output_text ===
@@ -253,7 +325,9 @@ correctIndex:
 
     }
 
-
+    /*
+     * Запасной способ извлечения текста.
+     */
     if (
       !result &&
       Array.isArray(data.output)
@@ -271,7 +345,6 @@ correctIndex:
 
           continue;
         }
-
 
         for (
           const content of
@@ -296,26 +369,26 @@ correctIndex:
 
     }
 
-
     result =
       result.trim();
 
-
     if (!result) {
 
-      return res.status(500).json({
-        error:
-          "AI не вернул результат."
-      });
+      console.error(
+        "OpenAI returned no text:",
+        data
+      );
 
+      return res.status(502).json({
+        error:
+          "AI не вернул текстовый результат."
+      });
     }
 
-
     /*
-      Проверяем JSON
-      для теста и карточек.
-    */
-
+     * Проверяем JSON для теста
+     * и карточек.
+     */
     if (
       type === "quiz" ||
       type === "flashcards"
@@ -324,19 +397,25 @@ correctIndex:
       let clean =
         result
           .replace(
-            /```json/gi,
+            /^```json\s*/i,
             ""
           )
           .replace(
-            /```/g,
+            /^```\s*/i,
+            ""
+          )
+          .replace(
+            /\s*```$/i,
             ""
           )
           .trim();
 
-
       let parsed = null;
 
-
+      /*
+       * Сначала пробуем распарсить
+       * весь ответ.
+       */
       try {
 
         parsed =
@@ -344,17 +423,19 @@ correctIndex:
 
       } catch (error) {
 
-        const start =
+        /*
+         * Если AI случайно добавил текст,
+         * ищем JSON-массив внутри ответа.
+         */
+        const first =
           clean.indexOf("[");
 
-        const end =
+        const last =
           clean.lastIndexOf("]");
 
-
         if (
-          start !== -1 &&
-          end !== -1 &&
-          end > start
+          first !== -1 &&
+          last > first
         ) {
 
           try {
@@ -362,55 +443,116 @@ correctIndex:
             parsed =
               JSON.parse(
                 clean.slice(
-                  start,
-                  end + 1
+                  first,
+                  last + 1
                 )
               );
 
-          } catch (e) {}
+          } catch (secondError) {
+
+            parsed = null;
+
+          }
 
         }
 
       }
 
+      /*
+       * Поддерживаем также:
+       *
+       * {
+       *   "questions": [...]
+       * }
+       *
+       * и
+       *
+       * {
+       *   "cards": [...]
+       * }
+       */
+      if (
+        parsed &&
+        !Array.isArray(parsed)
+      ) {
 
-      if (!parsed) {
+        if (
+          type === "quiz" &&
+          Array.isArray(
+            parsed.questions
+          )
+        ) {
 
-        return res.status(500).json({
+          parsed =
+            parsed.questions;
+
+        }
+
+        if (
+          type === "flashcards" &&
+          Array.isArray(
+            parsed.cards
+          )
+        ) {
+
+          parsed =
+            parsed.cards;
+
+        }
+
+      }
+
+      /*
+       * Если JSON всё ещё неправильный,
+       * сообщаем понятную ошибку.
+       */
+      if (
+        !Array.isArray(parsed)
+      ) {
+
+        console.error(
+          "Invalid structured AI result:",
+          result
+        );
+
+        return res.status(502).json({
+
           error:
-            "AI вернул данные в неправильном формате."
+            type === "quiz"
+              ? "AI вернул тест в неправильном формате."
+              : "AI вернул карточки в неправильном формате."
+
         });
 
       }
 
-
+      /*
+       * Отдаём фронтенду нормальный JSON.
+       */
       result =
         JSON.stringify(parsed);
-
     }
 
-
+    /*
+     * Успешный ответ.
+     */
     return res.status(200).json({
       result
     });
 
-
   } catch (error) {
 
     console.error(
-      "SERVER ERROR:",
+      "STUDYFISH SERVER ERROR:",
       error
     );
-
 
     return res.status(500).json({
 
       error:
         error?.message ||
-        "Server error"
+        "Внутренняя ошибка сервера."
 
     });
-
   }
-
 }
