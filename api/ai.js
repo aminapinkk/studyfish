@@ -6,9 +6,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { type, text } = req.body || {};
+    const { type, text, imageData } = req.body || {};
 
-    if (!text || !text.trim()) {
+    if (!text?.trim() && !imageData) {
       return res.status(400).json({
         error: "Учебный материал пустой."
       });
@@ -18,27 +18,37 @@ export default async function handler(req, res) {
       summary: `
 Ты — AI-помощник для учебы StudyFish.
 
-Сделай понятный конспект предоставленного учебного материала.
+Изучи предоставленный учебный материал или изображение.
 
-Выдели:
+Сделай понятный и полезный конспект.
+
+Структура:
 1. Главные темы
 2. Ключевые понятия
 3. Важные факты
 4. Что нужно запомнить
 
+Если материал представлен на изображении, внимательно прочитай весь видимый текст.
+
 Пиши на русском языке.
-Используй только информацию из материала.
+Используй только информацию из предоставленного материала.
+Объясняй понятно школьнику.
 `,
 
       quiz: `
 Ты — AI-преподаватель StudyFish.
 
-Создай 10 вопросов для проверки знаний по предоставленному учебному материалу.
+Изучи предоставленный учебный материал или изображение.
 
-Для каждого вопроса дай:
+Создай 10 вопросов для проверки знаний.
+
+Для каждого вопроса:
 - вопрос
 - 4 варианта ответа
 - правильный ответ
+- короткое объяснение
+
+Если материал представлен на изображении, сначала внимательно прочитай его.
 
 Используй только информацию из материала.
 Пиши на русском языке.
@@ -47,12 +57,11 @@ export default async function handler(req, res) {
       flashcards: `
 Ты — AI-помощник StudyFish.
 
-Создай ровно 10 интерактивных учебных карточек
-по предоставленному материалу.
+Изучи предоставленный учебный материал или изображение.
 
-Верни результат ТОЛЬКО как корректный JSON-массив.
+Создай 10 учебных карточек.
 
-Формат:
+Верни результат ТОЛЬКО в формате JSON-массива:
 
 [
   {
@@ -65,20 +74,40 @@ export default async function handler(req, res) {
   }
 ]
 
-Требования:
-- ровно 10 карточек;
-- question — короткий вопрос;
-- answer — понятный краткий ответ;
-- используй только информацию из учебного материала;
-- не добавляй Markdown;
-- не добавляй пояснения до или после JSON;
-- пиши на русском языке.
+Не добавляй никаких пояснений до или после JSON.
+
+Если материал представлен на изображении, внимательно прочитай его.
+
+Используй только информацию из материала.
+Пиши на русском языке.
 `
     };
 
     const instruction =
       prompts[type] ||
-      "Помоги ученику разобраться в учебном материале.";
+      "Помоги ученику разобраться в предоставленном учебном материале.";
+
+    let input;
+
+    if (imageData) {
+      input = [
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: instruction
+            },
+            {
+              type: "input_image",
+              image_url: imageData
+            }
+          ]
+        }
+      ];
+    } else {
+      input = `${instruction}\n\nУЧЕБНЫЙ МАТЕРИАЛ:\n${text}`;
+    }
 
     const response = await fetch(
       "https://api.openai.com/v1/responses",
@@ -90,11 +119,7 @@ export default async function handler(req, res) {
         },
         body: JSON.stringify({
           model: "gpt-5.6-luna",
-          input: `${instruction}
-
-УЧЕБНЫЙ МАТЕРИАЛ:
-
-${text}`,
+          input,
           max_output_tokens: 4000
         })
       }
@@ -102,13 +127,13 @@ ${text}`,
 
     const data = await response.json();
 
+    console.log("OpenAI response:", JSON.stringify(data));
+
     if (!response.ok) {
       console.error("OpenAI error:", data);
 
       return res.status(response.status).json({
-        error:
-          data?.error?.message ||
-          "Ошибка при обращении к OpenAI."
+        error: data?.error?.message || "OpenAI request failed"
       });
     }
 
@@ -137,54 +162,60 @@ ${text}`,
 
     if (!result) {
       return res.status(500).json({
-        error: "AI не вернул результат."
+        error: "AI не вернул текстовый результат."
       });
     }
 
-    // Для интерактивных карточек превращаем ответ AI в настоящий JSON
     if (type === "flashcards") {
+      let cards = null;
+
       try {
-        // Убираем возможные ```json ... ```
-        result = result
-          .replace(/^```json\s*/i, "")
-          .replace(/^```\s*/i, "")
-          .replace(/\s*```$/i, "")
+        let clean = result
+          .replace(/```json/gi, "")
+          .replace(/```/g, "")
           .trim();
 
-        const cards = JSON.parse(result);
+        try {
+          cards = JSON.parse(clean);
+        } catch {
+          const start = clean.indexOf("[");
+          const end = clean.lastIndexOf("]");
+
+          if (start !== -1 && end !== -1 && end > start) {
+            cards = JSON.parse(
+              clean.slice(start, end + 1)
+            );
+          }
+        }
+
+        if (cards && !Array.isArray(cards) && Array.isArray(cards.cards)) {
+          cards = cards.cards;
+        }
 
         if (!Array.isArray(cards)) {
-          throw new Error("Cards are not an array");
+          throw new Error("Invalid flashcards format");
         }
 
-        const cleanCards = cards
-          .filter(
-            card =>
-              card &&
-              typeof card.question === "string" &&
-              typeof card.answer === "string"
-          )
-          .slice(0, 10);
-
-        if (cleanCards.length === 0) {
-          throw new Error("No valid cards");
-        }
+        cards = cards
+          .filter(card => card && card.question && card.answer)
+          .map(card => ({
+            question: String(card.question),
+            answer: String(card.answer)
+          }));
 
         return res.status(200).json({
-          result: JSON.stringify(cleanCards)
+          result: JSON.stringify(cards)
         });
 
       } catch (error) {
-        console.error("Flashcards JSON error:", error);
-        console.error("AI result:", result);
+        console.error("Flashcards parse error:", error);
 
         return res.status(500).json({
-          error: "AI создал карточки в неправильном формате."
+          error: "Не удалось создать учебные карточки."
         });
       }
     }
 
-    // Конспект и тест работают как раньше
     return res.status(200).json({
       result
     });
@@ -193,7 +224,7 @@ ${text}`,
     console.error("Server error:", error);
 
     return res.status(500).json({
-      error: "Ошибка сервера: " + error.message
+      error: "Server error"
     });
   }
 }
