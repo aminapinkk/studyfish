@@ -402,6 +402,94 @@
       padding: 20px 0;
     }
 
+
+    .chat-app {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      min-height: 460px;
+    }
+
+    .chat-subtitle {
+      color: #64748b;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .chat-messages {
+      flex: 1;
+      min-height: 280px;
+      max-height: 430px;
+      overflow-y: auto;
+      padding: 8px 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #f8fbff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+    }
+
+    .chat-message {
+      max-width: 88%;
+      padding: 12px 14px;
+      border-radius: 16px;
+      line-height: 1.55;
+      white-space: pre-wrap;
+      font-size: 14px;
+    }
+
+    .chat-message.user {
+      align-self: flex-end;
+      background: #2563eb;
+      color: white;
+      border-bottom-right-radius: 5px;
+    }
+
+    .chat-message.assistant {
+      align-self: flex-start;
+      background: white;
+      color: #172554;
+      border: 1px solid #e2e8f0;
+      border-bottom-left-radius: 5px;
+    }
+
+    .chat-input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-input {
+      flex: 1;
+      min-width: 0;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font: inherit;
+      outline: none;
+    }
+
+    .chat-input:focus {
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+    }
+
+    .chat-send {
+      background: #2563eb;
+      color: white;
+      white-space: nowrap;
+    }
+
+    .chat-send:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .chat-hint {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
     .podcast-player {
       display: flex;
       flex-direction: column;
@@ -710,587 +798,10 @@
       }
     }
 
-  
-    /* ==============================
-       STUDYFISH DASHBOARD / MOBILE
-    ============================== */
-    :root {
-      --sf-blue: #2563eb;
-      --sf-blue-dark: #1d4ed8;
-      --sf-blue-soft: #eff6ff;
-      --sf-gold: #fbbf24;
-      --sf-ink: #172554;
-      --sf-muted: #64748b;
-      --sf-border: #e2e8f0;
-      --sf-bg: #f6f9ff;
-      --sf-card: #ffffff;
-      --sf-shadow: 0 14px 35px rgba(30, 64, 175, .08);
-    }
-
-    body {
-      background: var(--sf-bg);
-    }
-
-    .sf-shell {
-      width: min(1180px, calc(100% - 32px));
-      margin: 0 auto;
-    }
-
-    .sf-topbar {
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      backdrop-filter: blur(14px);
-      background: rgba(246, 249, 255, .88);
-      border-bottom: 1px solid rgba(226, 232, 240, .8);
-    }
-
-    .sf-topbar-inner {
-      min-height: 72px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-    }
-
-    .sf-brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      color: var(--sf-ink);
-      font-weight: 800;
-      font-size: 20px;
-      text-decoration: none;
-    }
-
-    .sf-brand-fish {
-      width: 40px;
-      height: 40px;
-      border-radius: 13px;
-      display: grid;
-      place-items: center;
-      background: linear-gradient(135deg, #2563eb, #60a5fa);
-      box-shadow: 0 8px 18px rgba(37, 99, 235, .22);
-      font-size: 23px;
-    }
-
-    .sf-nav {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .sf-nav-btn {
-      border: 0;
-      background: transparent;
-      color: var(--sf-muted);
-      font: inherit;
-      font-size: 14px;
-      font-weight: 700;
-      padding: 9px 12px;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-
-    .sf-nav-btn:hover,
-    .sf-nav-btn.active {
-      background: var(--sf-blue-soft);
-      color: var(--sf-blue);
-    }
-
-    .sf-main {
-      padding: 34px 0 60px;
-    }
-
-    .sf-hero {
-      position: relative;
-      overflow: hidden;
-      display: grid;
-      grid-template-columns: 1.45fr .55fr;
-      align-items: center;
-      gap: 20px;
-      padding: 30px 34px;
-      border-radius: 26px;
-      background: linear-gradient(135deg, #eaf3ff, #ffffff);
-      border: 1px solid #dbeafe;
-      box-shadow: var(--sf-shadow);
-      margin-bottom: 28px;
-    }
-
-    .sf-hero::after {
-      content: "";
-      position: absolute;
-      width: 220px;
-      height: 220px;
-      right: -80px;
-      top: -100px;
-      border-radius: 50%;
-      background: rgba(251, 191, 36, .14);
-    }
-
-    .sf-hero h1 {
-      margin: 0 0 8px;
-      color: var(--sf-ink);
-      font-size: clamp(27px, 4vw, 42px);
-      line-height: 1.08;
-      letter-spacing: -.03em;
-    }
-
-    .sf-hero p {
-      margin: 0;
-      max-width: 650px;
-      color: var(--sf-muted);
-      font-size: 16px;
-      line-height: 1.6;
-    }
-
-    .sf-hero-fish {
-      position: relative;
-      z-index: 1;
-      justify-self: end;
-      width: 130px;
-      height: 130px;
-      display: grid;
-      place-items: center;
-      border-radius: 38px;
-      background: white;
-      border: 1px solid #dbeafe;
-      box-shadow: 0 18px 35px rgba(37, 99, 235, .12);
-      font-size: 68px;
-      transform: rotate(-3deg);
-    }
-
-    .sf-section {
-      margin-top: 28px;
-    }
-
-    .sf-section-head {
-      display: flex;
-      align-items: end;
-      justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 14px;
-    }
-
-    .sf-section-head h2 {
-      margin: 0;
-      color: var(--sf-ink);
-      font-size: 22px;
-      letter-spacing: -.02em;
-    }
-
-    .sf-section-head span {
-      color: var(--sf-muted);
-      font-size: 13px;
-    }
-
-    .sf-dashboard-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 14px;
-    }
-
-    .sf-dashboard-card {
-      padding: 20px;
-      background: var(--sf-card);
-      border: 1px solid var(--sf-border);
-      border-radius: 18px;
-      box-shadow: 0 8px 24px rgba(15, 23, 42, .04);
-    }
-
-    .sf-dashboard-icon {
-      width: 42px;
-      height: 42px;
-      display: grid;
-      place-items: center;
-      border-radius: 13px;
-      background: var(--sf-blue-soft);
-      font-size: 21px;
-      margin-bottom: 12px;
-    }
-
-    .sf-dashboard-card strong {
-      display: block;
-      color: var(--sf-ink);
-      font-size: 16px;
-      margin-bottom: 5px;
-    }
-
-    .sf-dashboard-card small {
-      color: var(--sf-muted);
-      line-height: 1.45;
-    }
-
-    .sf-history {
-      display: grid;
-      gap: 10px;
-    }
-
-    .sf-history-item {
-      display: flex;
-      align-items: center;
-      gap: 13px;
-      padding: 14px 16px;
-      background: white;
-      border: 1px solid var(--sf-border);
-      border-radius: 15px;
-    }
-
-    .sf-history-icon {
-      width: 40px;
-      height: 40px;
-      flex: 0 0 40px;
-      display: grid;
-      place-items: center;
-      border-radius: 11px;
-      background: var(--sf-blue-soft);
-    }
-
-    .sf-history-name {
-      min-width: 0;
-      flex: 1;
-    }
-
-    .sf-history-name strong {
-      display: block;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      color: var(--sf-ink);
-      font-size: 14px;
-    }
-
-    .sf-history-name span {
-      color: var(--sf-muted);
-      font-size: 12px;
-    }
-
-    .sf-empty {
-      padding: 28px;
-      text-align: center;
-      color: var(--sf-muted);
-      background: white;
-      border: 1px dashed #cbd5e1;
-      border-radius: 17px;
-    }
-
-    .sf-mobile-upload {
-      width: 100%;
-      margin-top: 10px;
-      display: none;
-    }
-
-    /* Make existing material area feel like the dashboard. */
-    .materials-container,
-    #materials,
-    .materials-list {
-      scroll-margin-top: 90px;
-    }
-
-    @media (max-width: 800px) {
-      .sf-shell {
-        width: min(100% - 20px, 680px);
-      }
-
-      .sf-topbar-inner {
-        min-height: 62px;
-      }
-
-      .sf-brand {
-        font-size: 18px;
-      }
-
-      .sf-brand-fish {
-        width: 36px;
-        height: 36px;
-        font-size: 20px;
-      }
-
-      .sf-nav {
-        gap: 2px;
-      }
-
-      .sf-nav-btn {
-        padding: 8px;
-        font-size: 12px;
-      }
-
-      .sf-main {
-        padding-top: 18px;
-      }
-
-      .sf-hero {
-        grid-template-columns: 1fr;
-        padding: 24px 20px;
-        border-radius: 20px;
-      }
-
-      .sf-hero-fish {
-        justify-self: start;
-        width: 84px;
-        height: 84px;
-        border-radius: 25px;
-        font-size: 45px;
-      }
-
-      .sf-dashboard-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .sf-section-head h2 {
-        font-size: 20px;
-      }
-    }
-
-    @media (max-width: 520px) {
-      .sf-shell {
-        width: calc(100% - 16px);
-      }
-
-      .sf-topbar-inner {
-        flex-wrap: wrap;
-        padding: 8px 0;
-      }
-
-      .sf-nav {
-        width: 100%;
-        overflow-x: auto;
-        justify-content: space-between;
-      }
-
-      .sf-nav-btn {
-        white-space: nowrap;
-      }
-
-      .sf-hero h1 {
-        font-size: 29px;
-      }
-
-      .sf-hero p {
-        font-size: 14px;
-      }
-
-      .sf-section {
-        margin-top: 22px;
-      }
-
-      .sf-history-item {
-        padding: 12px;
-      }
-    }
-
-
-    /* ==============================
-       ACHIEVEMENTS / FISH CUSTOMIZATION
-    ============================== */
-    .sf-achievements {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-    }
-
-    .sf-achievement {
-      position: relative;
-      overflow: hidden;
-      min-height: 180px;
-      padding: 16px;
-      border: 1px solid var(--sf-border);
-      border-radius: 18px;
-      background: white;
-      box-shadow: 0 8px 24px rgba(15, 23, 42, .04);
-      transition: transform .18s ease, box-shadow .18s ease;
-    }
-
-    .sf-achievement:hover {
-      transform: translateY(-2px);
-      box-shadow: var(--sf-shadow);
-    }
-
-    .sf-achievement.locked {
-      opacity: .58;
-      filter: grayscale(.25);
-    }
-
-    .sf-achievement-icon {
-      width: 48px;
-      height: 48px;
-      display: grid;
-      place-items: center;
-      border-radius: 14px;
-      background: var(--sf-blue-soft);
-      font-size: 26px;
-      margin-bottom: 11px;
-    }
-
-    .sf-achievement strong {
-      display: block;
-      color: var(--sf-ink);
-      font-size: 14px;
-      margin-bottom: 5px;
-    }
-
-    .sf-achievement p {
-      margin: 0;
-      color: var(--sf-muted);
-      font-size: 12px;
-      line-height: 1.45;
-    }
-
-    .sf-achievement-state {
-      display: inline-block;
-      margin-top: 10px;
-      font-size: 11px;
-      font-weight: 800;
-      color: var(--sf-blue);
-    }
-
-    .sf-fish-customizer {
-      display: grid;
-      grid-template-columns: 180px 1fr;
-      gap: 18px;
-      align-items: center;
-      padding: 18px;
-      border-radius: 20px;
-      border: 1px solid #dbeafe;
-      background: linear-gradient(135deg, #eff6ff, #fff);
-    }
-
-    .sf-fish-preview {
-      width: 150px;
-      height: 150px;
-      display: grid;
-      place-items: center;
-      position: relative;
-      overflow: hidden;
-      border-radius: 38px;
-      border: 1px solid rgba(255,255,255,.8);
-      box-shadow: 0 16px 35px rgba(15, 23, 42, .12);
-      font-size: 68px;
-      transition: background .2s ease;
-    }
-
-    .sf-fish-hat {
-      position: absolute;
-      top: 5px;
-      left: 50%;
-      transform: translateX(-50%) rotate(-7deg);
-      font-size: 42px;
-      line-height: 1;
-      z-index: 2;
-    }
-
-    .sf-custom-options {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .sf-custom-option {
-      border: 1px solid var(--sf-border);
-      background: white;
-      border-radius: 11px;
-      padding: 9px 11px;
-      cursor: pointer;
-      font: inherit;
-      font-size: 12px;
-      color: var(--sf-ink);
-    }
-
-    .sf-custom-option:hover,
-    .sf-custom-option.active {
-      border-color: #93c5fd;
-      background: var(--sf-blue-soft);
-      color: var(--sf-blue);
-    }
-
-    @media (max-width: 900px) {
-      .sf-achievements {
-        grid-template-columns: repeat(2, 1fr);
-      }
-    }
-
-    @media (max-width: 600px) {
-      .sf-achievements {
-        grid-template-columns: 1fr;
-      }
-
-      .sf-fish-customizer {
-        grid-template-columns: 1fr;
-      }
-
-      .sf-fish-preview {
-        width: 120px;
-        height: 120px;
-        justify-self: center;
-      }
-    }
-
-</style>
+  </style>
 </head>
 
 <body>
-
-  <header class="sf-topbar">
-    <div class="sf-shell sf-topbar-inner">
-      <a class="sf-brand" href="#studyfish-dashboard" aria-label="StudyFish">
-        <span class="sf-brand-fish">🐟</span>
-        <span>StudyFish</span>
-      </a>
-      <nav class="sf-nav" aria-label="Навигация">
-        <button class="sf-nav-btn active" type="button" onclick="document.getElementById('studyfish-dashboard')?.scrollIntoView({behavior:'smooth'})">Главная</button>
-        <button class="sf-nav-btn" type="button" onclick="document.getElementById('studyfish-materials')?.scrollIntoView({behavior:'smooth'})">Мои материалы</button>
-        <button class="sf-nav-btn" type="button" onclick="document.getElementById('studyfish-history')?.scrollIntoView({behavior:'smooth'})">История</button>
-      </nav>
-    </div>
-  </header>
-
-  <main class="sf-main" id="studyfish-dashboard">
-    <div class="sf-shell">
-      <section class="sf-hero">
-        <div>
-          <h1>Учись проще с StudyFish 🐟</h1>
-          <p>Загружай учебные материалы, получай понятные конспекты, проходи тесты, учи карточки и слушай бесплатный AI-подкаст.</p>
-        </div>
-        <div class="sf-hero-fish" aria-hidden="true">🐟</div>
-      </section>
-
-      <section class="sf-section">
-        <div class="sf-section-head">
-          <h2>Что можно делать</h2>
-          <span>Всё в одном месте</span>
-        </div>
-        <div class="sf-dashboard-grid">
-          <div class="sf-dashboard-card">
-            <div class="sf-dashboard-icon">📄</div>
-            <strong>Загружай материалы</strong>
-            <small>PDF, DOC, DOCX, TXT и изображения.</small>
-          </div>
-          <div class="sf-dashboard-card">
-            <div class="sf-dashboard-icon">📝</div>
-            <strong>Понимай материал</strong>
-            <small>Получай конспекты и проверяй знания тестами.</small>
-          </div>
-          <div class="sf-dashboard-card">
-            <div class="sf-dashboard-icon">🎧</div>
-            <strong>Слушай подкаст</strong>
-            <small>Озвучивай учебный материал прямо в браузере бесплатно.</small>
-          </div>
-        </div>
-      </section>
-
-
-      <section class="sf-section" id="studyfish-history">
-        <div class="sf-section-head">
-          <h2>История</h2>
-          <span>Последние материалы</span>
-        </div>
-        <div class="sf-history" id="studyfish-history-list">
-          <div class="sf-empty">История появится здесь после загрузки материалов.</div>
-        </div>
-      </section>
-    </div>
-  </main>
-
 
   <nav>
     <div class="logo">
@@ -1388,7 +899,7 @@
   </section>
 
 
-  <section class="materials" id="studyfish-materials">
+  <section class="materials">
 
     <h2>Мои материалы</h2>
 
@@ -1399,31 +910,6 @@
     </div>
 
   </section>
-
-
-      <section class="sf-section" id="studyfish-achievements">
-        <div class="sf-section-head">
-          <h2>🏆 Достижения</h2>
-          <span>Открывай новые образы рыбки</span>
-        </div>
-
-        <div class="sf-fish-customizer">
-          <div class="sf-fish-preview" id="sf-fish-preview">
-            <span class="sf-fish-hat" id="sf-fish-hat"></span>
-            🐟
-          </div>
-          <div>
-            <strong style="display:block;color:var(--sf-ink);font-size:16px;margin-bottom:6px;">Твой образ StudyFish</strong>
-            <p style="margin:0 0 12px;color:var(--sf-muted);font-size:13px;line-height:1.5;">
-              Выполняй учебные действия и открывай новые шапочки и фоны.
-            </p>
-            <div class="sf-custom-options" id="sf-custom-options"></div>
-          </div>
-        </div>
-
-        <div class="sf-achievements" id="sf-achievements-list" style="margin-top:14px;"></div>
-      </section>
-
 
 
   <!-- AUTH MODAL -->
@@ -1962,11 +1448,6 @@
       return;
     }
 
-    // Достижения считаем по реальным материалам пользователя.
-    if (window.studyFishUnlock) {
-      if (data.length >= 1) window.studyFishUnlock("first_material");
-      if (data.length >= 3) window.studyFishUnlock("three_materials");
-    }
 
     materialsList.innerHTML = "";
 
@@ -2016,11 +1497,18 @@
         generatePodcast(doc)
       );
 
-      // Показываем ВСЕ четыре инструмента в карточке материала.
+      const chatButton = window.document.createElement("button");
+      chatButton.className = "ai-btn";
+      chatButton.textContent = "💬 Чат";
+      chatButton.addEventListener("click", () =>
+        openMaterialChat(doc)
+      );
+
       actions.appendChild(summaryButton);
       actions.appendChild(quizButton);
       actions.appendChild(flashcardsButton);
       actions.appendChild(podcastButton);
+      actions.appendChild(chatButton);
 
       info.appendChild(name);
       info.appendChild(type);
@@ -2265,10 +1753,6 @@
 
         renderQuiz(questions);
 
-        if (window.studyFishUnlock) {
-          window.studyFishUnlock("first_test");
-        }
-
       /*
        * -----------------------------
        * ИНТЕРАКТИВНЫЕ КАРТОЧКИ
@@ -2322,10 +1806,6 @@
         }
 
         renderFlashcards(cards);
-
-        if (window.studyFishUnlock) {
-          window.studyFishUnlock("first_cards");
-        }
 
       } else {
         aiContent.className = "ai-result";
@@ -2856,7 +2336,6 @@
   ============================== */
 
   async function generatePodcast(doc) {
-    if (window.studyFishUnlock) window.studyFishUnlock("first_podcast");
     aiTitle.textContent = "🎧 Бесплатный подкаст";
     aiContent.className = "ai-loading";
     aiContent.textContent =
@@ -3210,6 +2689,172 @@
 
 
   /* ==============================
+     MATERIAL CHAT
+  ============================== */
+
+  async function openMaterialChat(doc) {
+    aiTitle.textContent = "💬 Спроси StudyFish";
+    aiModal.classList.add("active");
+
+    aiContent.className = "chat-app";
+    aiContent.innerHTML = "";
+
+    const subtitle = window.document.createElement("div");
+    subtitle.className = "chat-subtitle";
+    subtitle.textContent =
+      "Задавай вопросы по выбранному материалу. StudyFish будет объяснять тему простыми словами и опираться на этот материал.";
+
+    const messages = window.document.createElement("div");
+    messages.className = "chat-messages";
+
+    const inputRow = window.document.createElement("div");
+    inputRow.className = "chat-input-row";
+
+    const input = window.document.createElement("input");
+    input.className = "chat-input";
+    input.type = "text";
+    input.placeholder = "Например: объясни эту тему проще...";
+    input.autocomplete = "off";
+
+    const send = window.document.createElement("button");
+    send.className = "chat-send";
+    send.type = "button";
+    send.textContent = "Отправить";
+
+    const hint = window.document.createElement("div");
+    hint.className = "chat-hint";
+    hint.textContent = "Enter — отправить вопрос";
+
+    inputRow.appendChild(input);
+    inputRow.appendChild(send);
+
+    aiContent.appendChild(subtitle);
+    aiContent.appendChild(messages);
+    aiContent.appendChild(inputRow);
+    aiContent.appendChild(hint);
+
+    function addMessage(role, text) {
+      const bubble = window.document.createElement("div");
+      bubble.className = "chat-message " + role;
+      bubble.textContent = text;
+      messages.appendChild(bubble);
+      messages.scrollTop = messages.scrollHeight;
+      return bubble;
+    }
+
+    addMessage(
+      "assistant",
+      "🐟 Привет! Я помогу разобраться в этом материале. Спроси меня о любом непонятном месте."
+    );
+
+    let materialText = "";
+    let imageUrl = null;
+    let loaded = false;
+
+    async function loadMaterialForChat() {
+      if (loaded) return;
+
+      const isImage =
+        (doc.file_type || "").startsWith("image/") ||
+        /\.(jpg|jpeg|png|webp|gif)$/i.test(doc.file_name || "");
+
+      if (isImage) {
+        const { data, error } = await supabaseClient.storage
+          .from("documents")
+          .createSignedUrl(doc.storage_path, 300);
+
+        if (error || !data?.signedUrl) {
+          throw new Error(
+            "Не удалось открыть изображение: " +
+            (error?.message || "неизвестная ошибка")
+          );
+        }
+
+        imageUrl = data.signedUrl;
+      } else {
+        const file = await downloadMaterial(doc);
+        materialText = (await extractTextFromFile(file, doc.file_name) || "").trim();
+
+        if (!materialText) {
+          throw new Error("Не удалось найти текст в этом файле.");
+        }
+
+        if (materialText.length > 100000) {
+          materialText = materialText.slice(0, 100000);
+        }
+      }
+
+      loaded = true;
+    }
+
+    async function sendQuestion() {
+      const question = input.value.trim();
+      if (!question || send.disabled) return;
+
+      send.disabled = true;
+      input.disabled = true;
+      addMessage("user", question);
+      input.value = "";
+
+      const loading = addMessage("assistant", "🐟 Думаю над ответом...");
+
+      try {
+        await loadMaterialForChat();
+
+        const response = await fetch("/api/ai", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            type: "chat",
+            text: materialText,
+            imageUrl,
+            question,
+            fileName: doc.file_name
+          })
+        });
+
+        const raw = await response.text();
+        let data = null;
+
+        try {
+          data = JSON.parse(raw);
+        } catch {
+          throw new Error(raw || "Сервер вернул некорректный ответ.");
+        }
+
+        if (!response.ok) {
+          throw new Error(data?.error || "Не удалось получить ответ от AI.");
+        }
+
+        loading.textContent =
+          data.result || "StudyFish не вернул ответ.";
+      } catch (error) {
+        console.error("StudyFish chat error:", error);
+        loading.textContent =
+          "Не удалось ответить.\n\n" +
+          (error?.message || "Произошла неизвестная ошибка.");
+      } finally {
+        send.disabled = false;
+        input.disabled = false;
+        input.focus();
+      }
+    }
+
+    send.addEventListener("click", sendQuestion);
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        event.preventDefault();
+        sendQuestion();
+      }
+    });
+
+    input.focus();
+  }
+
+
+  /* ==============================
      DELETE MATERIAL
   ============================== */
 
@@ -3278,210 +2923,6 @@
 
   updateAuthUI();
 
-</script>
-
-
-<script>
-(function () {
-  function updateStudyFishHistory() {
-    const list = document.getElementById("studyfish-history-list");
-    if (!list) return;
-
-    const candidates = [
-      document.getElementById("materialsList"),
-      document.querySelector("#studyfish-materials"),
-      document.querySelector("#materials"),
-      document.querySelector(".materials-list"),
-      document.querySelector(".materials-container")
-    ].filter(Boolean);
-
-    let cards = [];
-    for (const root of candidates) {
-      cards = Array.from(root.querySelectorAll(
-        ".material, .material-card, .document-card, [data-document-id]"
-      ));
-      if (cards.length) break;
-    }
-
-    if (!cards.length) return;
-
-    const items = cards.slice(-5).reverse().map(card => {
-      const nameEl = card.querySelector(
-        ".material-name, .document-name, .material-title, h3, h4"
-      );
-      const name = (nameEl?.textContent || "Учебный материал").trim();
-      return `
-        <div class="sf-history-item">
-          <div class="sf-history-icon">📄</div>
-          <div class="sf-history-name">
-            <strong>${name.replace(/[&<>"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s]))}</strong>
-            <span>Материал StudyFish</span>
-          </div>
-        </div>
-      `;
-    });
-
-    if (items.length) list.innerHTML = items.join("");
-  }
-
-  window.addEventListener("load", () => {
-    updateStudyFishHistory();
-    const observer = new MutationObserver(() => updateStudyFishHistory());
-    const target =
-      document.getElementById("materialsList") ||
-      document.querySelector("#studyfish-materials") ||
-      document.querySelector("#materials") ||
-      document.querySelector(".materials-list") ||
-      document.body;
-    observer.observe(target, {childList: true, subtree: true});
-  });
-})();
-</script>
-
-
-<script>
-(function () {
-  const ACHIEVEMENTS = [
-    { id: "first_material", icon: "📚", name: "Первый материал", desc: "Загрузи свой первый учебный материал.", action: "materials", hat: "🎓", bg: "linear-gradient(135deg,#dbeafe,#ffffff)" },
-    { id: "three_materials", icon: "📚", name: "Учёный запас", desc: "Загрузи 3 учебных материала.", action: "materials3", hat: "🎓", bg: "linear-gradient(135deg,#ede9fe,#ffffff)" },
-    { id: "first_test", icon: "🧠", name: "Первый тест", desc: "Запусти свой первый тест.", action: "tests", hat: "👑", bg: "linear-gradient(135deg,#fef3c7,#ffffff)" },
-    { id: "first_cards", icon: "🃏", name: "Карточки в деле", desc: "Открой первый набор карточек.", action: "cards", hat: "🧢", bg: "linear-gradient(135deg,#dcfce7,#ffffff)" },
-    { id: "first_podcast", icon: "🎧", name: "Слушатель", desc: "Запусти первый бесплатный подкаст.", action: "podcast", hat: "🎧", bg: "linear-gradient(135deg,#fce7f3,#ffffff)" },
-    { id: "all_tools", icon: "⭐", name: "Мастер StudyFish", desc: "Попробуй все основные инструменты.", action: "all", hat: "⭐", bg: "linear-gradient(135deg,#fef9c3,#ffffff)" }
-  ];
-
-  const KEY = "studyfish_achievements_v1";
-  const CUSTOM_KEY = "studyfish_fish_custom_v1";
-
-  function getState() {
-    try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; }
-  }
-
-  function saveState(state) {
-    localStorage.setItem(KEY, JSON.stringify(state));
-  }
-
-  function unlock(id) {
-    const state = getState();
-    if (!state[id]) {
-      state[id] = Date.now();
-      saveState(state);
-      renderAchievements();
-    }
-  }
-
-  function isUnlocked(a) {
-    return !!getState()[a.id];
-  }
-
-  function renderAchievements() {
-    const list = document.getElementById("sf-achievements-list");
-    if (!list) return;
-    const state = getState();
-
-    list.innerHTML = ACHIEVEMENTS.map(a => {
-      const unlocked = !!state[a.id];
-      return `
-        <div class="sf-achievement ${unlocked ? "" : "locked"}">
-          <div class="sf-achievement-icon">${a.icon}</div>
-          <strong>${a.name}</strong>
-          <p>${a.desc}</p>
-          <span class="sf-achievement-state">${unlocked ? "✓ Открыто" : "🔒 Закрыто"}</span>
-        </div>
-      `;
-    }).join("");
-  }
-
-  function getCustom() {
-    try {
-      return JSON.parse(localStorage.getItem(CUSTOM_KEY)) || { hat: "", bg: "linear-gradient(135deg,#eaf3ff,#ffffff)" };
-    } catch {
-      return { hat: "", bg: "linear-gradient(135deg,#eaf3ff,#ffffff)" };
-    }
-  }
-
-  function setCustom(custom) {
-    localStorage.setItem(CUSTOM_KEY, JSON.stringify(custom));
-    renderCustomizer();
-  }
-
-  function renderCustomizer() {
-    const preview = document.getElementById("sf-fish-preview");
-    const hat = document.getElementById("sf-fish-hat");
-    const options = document.getElementById("sf-custom-options");
-    if (!preview || !hat || !options) return;
-
-    const custom = getCustom();
-    preview.style.background = custom.bg;
-    hat.textContent = custom.hat || "";
-
-    const unlocked = ACHIEVEMENTS.filter(isUnlocked);
-    const choices = [
-      { label: "🐟 Обычный", hat: "", bg: "linear-gradient(135deg,#eaf3ff,#ffffff)" },
-      ...unlocked.map(a => ({ label: a.hat + " " + a.name, hat: a.hat, bg: a.bg }))
-    ];
-
-    options.innerHTML = choices.map((c, i) => `
-      <button type="button" class="sf-custom-option ${custom.hat === c.hat && custom.bg === c.bg ? "active" : ""}" data-i="${i}">
-        ${c.label}
-      </button>
-    `).join("");
-
-    options.querySelectorAll(".sf-custom-option").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const c = choices[Number(btn.dataset.i)];
-        setCustom({ hat: c.hat, bg: c.bg });
-      });
-    });
-  }
-
-  window.studyFishUnlock = unlock;
-
-  window.addEventListener("load", () => {
-    renderAchievements();
-    renderCustomizer();
-
-    // First material achievements are based on the existing material cards.
-    const countMaterials = () => {
-      const roots = [
-        document.getElementById("materialsList"),
-        document.querySelector("#materials"),
-        document.querySelector(".materials-list"),
-        document.querySelector(".materials-container")
-      ].filter(Boolean);
-
-      let count = 0;
-      for (const root of roots) {
-        const cards = root.querySelectorAll(
-          ".material, .material-card, .document-card, [data-document-id]"
-        );
-        if (cards.length) { count = cards.length; break; }
-      }
-
-      if (count >= 1) unlock("first_material");
-      if (count >= 3) unlock("three_materials");
-    };
-
-    countMaterials();
-    const observer = new MutationObserver(countMaterials);
-    observer.observe(document.body, { childList: true, subtree: true });
-  });
-})();
-</script>
-
-
-<script>
-(function () {
-  function checkAllTools() {
-    try {
-      const s = JSON.parse(localStorage.getItem("studyfish_achievements_v1") || "{}");
-      if (s.first_material && s.first_test && s.first_cards && s.first_podcast) {
-        if (window.studyFishUnlock) window.studyFishUnlock("all_tools");
-      }
-    } catch {}
-  }
-  setInterval(checkAllTools, 1500);
-})();
 </script>
 
 </body>
