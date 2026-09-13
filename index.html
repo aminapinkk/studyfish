@@ -401,6 +401,61 @@
       padding: 20px 0;
     }
 
+    .podcast-player {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .podcast-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 18px;
+    }
+
+    .podcast-title {
+      font-weight: 800;
+      color: #172554;
+      margin-bottom: 6px;
+    }
+
+    .podcast-subtitle {
+      color: #64748b;
+      font-size: 14px;
+      margin-bottom: 14px;
+    }
+
+    .podcast-audio {
+      width: 100%;
+    }
+
+    .podcast-download {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: #2563eb;
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      margin-top: 4px;
+    }
+
+    .podcast-script {
+      white-space: pre-wrap;
+      line-height: 1.65;
+      color: #334155;
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 16px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 14px;
+    }
+
     @media (max-width: 700px) {
       .material-right {
         width: 100%;
@@ -1344,9 +1399,17 @@
         generateAI(doc, "flashcards")
       );
 
+      const podcastButton = window.document.createElement("button");
+      podcastButton.className = "ai-btn";
+      podcastButton.textContent = "🎧 Подкаст";
+      podcastButton.addEventListener("click", () =>
+        generatePodcast(doc)
+      );
+
       actions.appendChild(summaryButton);
       actions.appendChild(quizButton);
       actions.appendChild(flashcardsButton);
+      actions.appendChild(podcastButton);
 
       info.appendChild(name);
       info.appendChild(type);
@@ -2166,6 +2229,159 @@
     next.addEventListener("click", goNext);
 
     updateCard();
+  }
+
+
+  /* ==============================
+     AI PODCAST
+  ============================== */
+
+  async function generatePodcast(doc) {
+    aiTitle.textContent = "🎧 AI-подкаст";
+    aiContent.className = "ai-loading";
+    aiContent.textContent =
+      "🐟 StudyFish готовит сценарий подкаста и озвучивает его...";
+    aiModal.classList.add("active");
+
+    let audioUrl = null;
+
+    try {
+      let text = "";
+      let imageUrl = null;
+
+      const isImage =
+        (doc.file_type || "").startsWith("image/") ||
+        /\.(jpg|jpeg|png|webp|gif)$/i.test(doc.file_name || "");
+
+      if (isImage) {
+        const {
+          data: signedData,
+          error: signedError
+        } = await supabaseClient.storage
+          .from("documents")
+          .createSignedUrl(doc.storage_path, 300);
+
+        if (signedError || !signedData?.signedUrl) {
+          throw new Error(
+            "Не удалось открыть изображение: " +
+            (signedError?.message || "неизвестная ошибка")
+          );
+        }
+
+        imageUrl = signedData.signedUrl;
+      } else {
+        const file = await downloadMaterial(doc);
+        text = await extractTextFromFile(file, doc.file_name);
+        text = (text || "").trim();
+
+        if (!text) {
+          throw new Error("Не удалось найти текст в этом файле.");
+        }
+
+        if (text.length > 120000) {
+          text = text.slice(0, 120000);
+        }
+      }
+
+      const response = await fetch("/api/podcast", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          text,
+          imageUrl,
+          fileName: doc.file_name || "Учебный материал"
+        })
+      });
+
+      const contentType =
+        response.headers.get("content-type") || "";
+
+      if (!response.ok) {
+        let message = "Не удалось создать подкаст.";
+        if (contentType.includes("application/json")) {
+          const data = await response.json();
+          message = data?.error || message;
+        } else {
+          const raw = await response.text();
+          if (raw) message = raw;
+        }
+        throw new Error(message);
+      }
+
+      let script = "Подкаст создан по твоему учебному материалу.";
+      const encodedScript = response.headers.get("X-StudyFish-Script");
+
+      if (encodedScript) {
+        try {
+          const bytes = Uint8Array.from(
+            atob(encodedScript),
+            char => char.charCodeAt(0)
+          );
+          script = new TextDecoder("utf-8").decode(bytes);
+        } catch (decodeError) {
+          console.warn("Не удалось прочитать сценарий из заголовка.", decodeError);
+        }
+      }
+
+      const blob = await response.blob();
+      audioUrl = URL.createObjectURL(blob);
+
+      aiContent.className = "podcast-player";
+      aiContent.innerHTML = "";
+
+      const card = window.document.createElement("div");
+      card.className = "podcast-card";
+
+      const title = window.document.createElement("div");
+      title.className = "podcast-title";
+      title.textContent = "Готово 🎧";
+
+      const subtitle = window.document.createElement("div");
+      subtitle.className = "podcast-subtitle";
+      subtitle.textContent =
+        "StudyFish превратил материал в короткий учебный аудиоподкаст.";
+
+      const audio = window.document.createElement("audio");
+      audio.className = "podcast-audio";
+      audio.controls = true;
+      audio.src = audioUrl;
+      audio.autoplay = false;
+
+      const download = window.document.createElement("a");
+      download.className = "podcast-download";
+      download.href = audioUrl;
+      download.download =
+        (doc.file_name || "studyfish-podcast")
+          .replace(/\.[^.]+$/, "") +
+        "-podcast.mp3";
+      download.textContent = "⬇️ Скачать MP3";
+
+      const scriptTitle = window.document.createElement("div");
+      scriptTitle.className = "podcast-title";
+      scriptTitle.textContent = "Сценарий";
+      scriptTitle.style.marginTop = "18px";
+
+      const scriptBox = window.document.createElement("div");
+      scriptBox.className = "podcast-script";
+      scriptBox.textContent = script;
+
+      card.appendChild(title);
+      card.appendChild(subtitle);
+      card.appendChild(audio);
+      card.appendChild(download);
+      card.appendChild(scriptTitle);
+      card.appendChild(scriptBox);
+      aiContent.appendChild(card);
+
+    } catch (error) {
+      console.error("Podcast error:", error);
+      aiContent.className = "ai-result";
+      aiContent.textContent =
+        "Не удалось создать подкаст.\n\n" +
+        (error?.message || "Неизвестная ошибка.");
+    }
   }
 
 
