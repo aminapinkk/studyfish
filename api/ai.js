@@ -1,8 +1,6 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({
-      error: "Method not allowed"
-    });
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
@@ -14,10 +12,9 @@ export default async function handler(req, res) {
       fileName = ""
     } = req.body || {};
 
-    const cleanText =
-      typeof text === "string"
-        ? text.trim().slice(0, 30000)
-        : "";
+    const cleanText = typeof text === "string"
+      ? text.trim().slice(0, 30000)
+      : "";
 
     if (!cleanText && !imageUrl) {
       return res.status(400).json({
@@ -31,427 +28,309 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!process.env.OPENAI_API_KEY) {
-      console.error("OPENAI_API_KEY is missing");
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
       return res.status(500).json({
-        error: "На сервере не настроен OPENAI_API_KEY."
+        error: "Не настроен бесплатный Gemini API. Добавь GEMINI_API_KEY в Vercel Environment Variables."
       });
-    }
-
-    /*
-     * В StudyFish изображения приходят как временные
-     * signed URL из приватного Supabase bucket.
-     *
-     * Проверяем, что ссылка относится к нашему Supabase,
-     * чтобы endpoint не использовался как прокси для чужих URL.
-     */
-    if (imageUrl) {
-      let parsedUrl;
-
-      try {
-        parsedUrl = new URL(imageUrl);
-      } catch (error) {
-        return res.status(400).json({
-          error: "Некорректная ссылка на изображение."
-        });
-      }
-
-      const allowedOrigin =
-        "https://skgujqnfmzaunpdrattg.supabase.co";
-
-      if (parsedUrl.origin !== allowedOrigin) {
-        return res.status(400).json({
-          error: "Недопустимый источник изображения."
-        });
-      }
     }
 
     const prompts = {
       summary: `
 Ты — AI-помощник для учёбы StudyFish.
 
-Изучи предоставленный учебный материал.
+Изучи предоставленный учебный материал и сделай хороший школьный конспект.
 
-Если это изображение, внимательно прочитай весь
-видимый текст на изображении.
-
-ВАЖНО:
-- Распознавай как печатный, так и рукописный текст.
-- Старайся восстановить слова по контексту, если почерк сложный.
-- Не придумывай текст, которого нет на изображении.
-- Если часть текста невозможно разобрать, честно укажи это.
-
-Сделай понятный и полезный конспект.
+Если материал содержит заголовок урока, имя преподавателя, дату, номер урока или технические служебные строки, не превращай их в учебные понятия.
 
 Структура:
-
 1. Главные темы
-2. Ключевые понятия
-3. Важные факты
+2. Ключевые понятия и определения
+3. Важные правила и факты
 4. Что нужно запомнить
 
-Пиши на русском языке.
-Используй только информацию из предоставленного материала.
-Объясняй понятно школьнику.
+Используй только информацию из материала.
+Не придумывай факты.
+Пиши понятно школьнику на русском языке.
 `,
 
       quiz: `
 Ты — AI-преподаватель StudyFish.
 
-Изучи предоставленный учебный материал.
+Создай 10 качественных вопросов для теста ИМЕННО по содержанию учебного материала.
 
-Если это изображение, внимательно прочитай весь
-видимый текст.
+Очень важно:
+- Не используй название файла или название урока как вопрос.
+- Не используй имя преподавателя, дату, номер урока и служебные данные как учебные понятия.
+- Не делай вопросы из обрывков предложений.
+- Каждый вопрос должен проверять реальное знание или понимание темы.
+- Используй определения, свойства, правила, назначение, различия, причины/следствия и важные факты из материала.
+- Каждый вопрос имеет ровно один правильный ответ.
+- Ровно 4 варианта ответа.
+- Неправильные варианты должны быть правдоподобными и относиться к той же теме.
+- Не повторяй один и тот же факт.
+- Объяснение должно быть основано на материале.
 
-ВАЖНО:
-- Распознавай печатный и рукописный текст.
-- Если почерк сложный, используй контекст для чтения,
-  но не придумывай отсутствующую информацию.
+Верни ТОЛЬКО JSON-массив:
 
-Создай 10 качественных вопросов для интерактивного теста по СОДЕРЖАНИЮ материала.
+[
+  {
+    "question": "...",
+    "options": ["...", "...", "...", "..."],
+    "correctIndex": 0,
+    "explanation": "..."
+  }
+]
 
-ВАЖНО: тест должен проверять понимание учебной темы, а не угадывание случайного слова.
-
-- Вопросы должны быть разными: определения, назначение,
-  свойства, различия, последовательности действий,
-  важные факты.
-- Не делай вопросы по одному и тому же предложению
-  с заменой одного слова.
-- Каждый вопрос должен иметь ровно один
-  однозначно правильный ответ.
-- Все 4 варианта должны относиться к той же теме
-  и выглядеть правдоподобно.
-- Неправильные варианты должны быть осмысленными,
-  а не случайными словами из текста.
-- Не используй информацию, которой нет в материале.
-- Не делай правильный вариант заметно длиннее
-  или подробнее остальных.
-- Объяснение должно кратко объяснять,
-  почему правильный ответ верен.
-
-Для каждого вопроса используй строго такой формат:
-
-{
-  "question": "Текст вопроса",
-  "options": [
-    "Вариант 1",
-    "Вариант 2",
-    "Вариант 3",
-    "Вариант 4"
-  ],
-  "correctIndex": 0,
-  "explanation": "Короткое объяснение"
-}
-
-Правила correctIndex:
-
-0 — первый вариант
-1 — второй вариант
-2 — третий вариант
-3 — четвёртый вариант
-
-Перед выдачей JSON проверь каждый вопрос:
-
-- правильный ответ действительно следует из материала;
-- остальные три не являются альтернативно правильными;
-- вопрос не повторяет предыдущий;
-- варианты относятся к одной теме;
-- нет случайных слов.
-
-Верни ТОЛЬКО JSON-массив.
-
-Не добавляй markdown.
-Не добавляй текст до или после JSON.
-
-Используй только информацию из учебного материала.
-Пиши на русском языке.
-`,
-
-      chat: `
-Ты — StudyFish, AI-помощник для учёбы.
-
-Отвечай на вопрос ученика, опираясь прежде всего
-на предоставленный учебный материал.
-
-Правила:
-- Не придумывай факты, которых нет в материале.
-- Если на вопрос нельзя надёжно ответить по материалу,
-  честно скажи об этом.
-- Объясняй простым и понятным русским языком.
-- Если ученик не понял тему, объясни её проще.
-- При необходимости приведи короткий понятный пример,
-  связанный с материалом.
-- Не используй сложные формулировки без объяснения.
-- Не используй markdown-таблицы.
-- Можно использовать короткие списки и абзацы.
-
-Верни только ответ для ученика,
-без служебных комментариев.
+correctIndex: 0, 1, 2 или 3.
 `,
 
       flashcards: `
 Ты — AI-помощник для учёбы StudyFish.
 
-Изучи предоставленный учебный материал.
+Создай 10 качественных учебных карточек по содержанию материала.
 
-Если это изображение, внимательно прочитай весь
-видимый текст.
+Приоритет:
+1. Термин → определение
+2. Понятие → объяснение
+3. Правило → формулировка
+4. Свойство → описание
+5. Вопрос → конкретный факт
+6. Причина → следствие
+7. Отличие одного понятия от другого
 
-ВАЖНО:
-- Распознавай печатный и рукописный текст.
-- Не придумывай информацию, которой нет в материале.
+Очень важно:
+- Не используй имя преподавателя, дату, номер урока и служебные данные.
+- Не используй название файла как учебный вопрос.
+- Не вырезай случайные слова из середины предложений.
+- Не делай карточку из обрывка текста.
+- Каждый вопрос должен иметь понятный точный ответ из материала.
+- Карточки не должны повторять друг друга.
 
-Создай 10 качественных учебных карточек
-для запоминания материала.
-
-ВАЖНО: карточки должны быть логически связаны
-с темой и помогать учить материал.
-
-Сначала выдели:
-
-1. Самые важные термины.
-2. Определения.
-3. Правила.
-4. Свойства.
-5. Важные факты.
-6. Причины и следствия.
-7. Различия между понятиями.
-8. Последовательности действий.
-
-Делай вопросы конкретными:
-
-«Что такое...»
-«Для чего используется...»
-«Какие свойства имеет...»
-«Чем отличается...»
-«Как выполняется...»
-
-Используй эти формы только тогда,
-когда они подтверждаются материалом.
-
-ВАЖНО:
-
-- Не делай карточки из случайных длинных слов.
-- Не делай карточки из случайных предложений.
-- Не повторяй один и тот же факт.
-- Не задавай вопрос, если на него нельзя
-  точно ответить по материалу.
-- Ответ должен быть коротким и точным.
-- Вопрос должен быть понятен школьнику.
-- Каждая карточка должна проверять отдельную
-  важную часть материала.
-
-Верни ТОЛЬКО JSON-массив такого вида:
+Верни ТОЛЬКО JSON-массив:
 
 [
   {
-    "question": "Вопрос",
-    "answer": "Короткий точный ответ"
+    "question": "...",
+    "answer": "..."
   }
 ]
+`,
 
-Не добавляй markdown.
-Не добавляй текст до или после JSON.
+      chat: `
+Ты — StudyFish, AI-помощник для учёбы.
 
-Используй только информацию из материала.
-Пиши на русском языке.
+Отвечай на вопрос ученика по предоставленному учебному материалу.
+Не придумывай информацию, которой нет в материале.
+Если ответа в материале нет, так и скажи.
+Объясняй простым русским языком.
 `
     };
 
-    const instruction =
-      prompts[type] ||
-      `
+    const instruction = prompts[type] || `
 Ты — AI-помощник StudyFish.
-
-Помоги ученику разобраться
-в предоставленном учебном материале.
-
-Пиши на русском языке.
+Помоги ученику разобраться в учебном материале.
 Используй только информацию из материала.
+Пиши на русском языке.
 `;
 
-    let input;
+    let parts = [];
 
     if (imageUrl) {
-      input = [
-        {
-          role: "user",
-          content: [
-            {
-              type: "input_text",
-              text:
-                type === "chat"
-                  ? instruction +
-                    "\n\nФАЙЛ: " +
-                    (fileName || "учебный материал") +
-                    "\n\nВОПРОС УЧЕНИКА:\n" +
-                    String(question).trim()
-                  : instruction
-            },
-            {
-              type: "input_image",
-              image_url: imageUrl
-            }
-          ]
+      let parsedUrl;
+
+      try {
+        parsedUrl = new URL(imageUrl);
+      } catch {
+        return res.status(400).json({
+          error: "Некорректная ссылка на изображение."
+        });
+      }
+
+      if (
+        parsedUrl.origin !==
+        "https://skgujqnfmzaunpdrattg.supabase.co"
+      ) {
+        return res.status(400).json({
+          error: "Недопустимый источник изображения."
+        });
+      }
+
+      const imageResponse = await fetch(imageUrl);
+
+      if (!imageResponse.ok) {
+        return res.status(400).json({
+          error: "Не удалось получить изображение учебного материала."
+        });
+      }
+
+      const contentType =
+        imageResponse.headers.get("content-type") || "image/jpeg";
+
+      if (!contentType.startsWith("image/")) {
+        return res.status(400).json({
+          error: "Файл по ссылке не является изображением."
+        });
+      }
+
+      const imageBuffer = Buffer.from(
+        await imageResponse.arrayBuffer()
+      );
+
+      if (imageBuffer.length > 10 * 1024 * 1024) {
+        return res.status(413).json({
+          error: "Изображение слишком большое для бесплатного AI."
+        });
+      }
+
+      parts.push({
+        inline_data: {
+          mime_type: contentType.split(";")[0],
+          data: imageBuffer.toString("base64")
         }
-      ];
+      });
+
+      parts.push({
+        text:
+          instruction +
+          "\n\nЕсли на изображении есть печатный или рукописный текст, внимательно прочитай его. " +
+          "Не придумывай отсутствующий текст." +
+          (fileName ? `\nИмя файла: ${fileName}` : "") +
+          (type === "chat"
+            ? `\n\nВопрос ученика:\n${String(question).trim()}`
+            : "")
+      });
     } else {
-      input =
-        type === "chat"
-          ? instruction +
-            "\n\nУЧЕБНЫЙ МАТЕРИАЛ:\n" +
-            cleanText +
-            "\n\nВОПРОС УЧЕНИКА:\n" +
-            String(question).trim()
-          : instruction +
-            "\n\nУЧЕБНЫЙ МАТЕРИАЛ:\n" +
-            cleanText;
+      parts.push({
+        text:
+          instruction +
+          "\n\nУЧЕБНЫЙ МАТЕРИАЛ:\n" +
+          cleanText +
+          (type === "chat"
+            ? `\n\nВОПРОС УЧЕНИКА:\n${String(question).trim()}`
+            : "")
+      });
     }
 
-    const outputTokens =
-      type === "summary"
-        ? 2200
-        : type === "quiz"
-        ? 2600
-        : type === "flashcards"
-        ? 2200
-        : type === "chat"
-        ? 1400
-        : 1800;
+    const body = {
+      contents: [
+        {
+          role: "user",
+          parts
+        }
+      ],
+      generationConfig: {
+        temperature:
+          type === "quiz" || type === "flashcards"
+            ? 0.2
+            : 0.4,
 
-    const openaiResponse = await fetch(
-      "https://api.openai.com/v1/responses",
-      {
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization":
-            `Bearer ${process.env.OPENAI_API_KEY}`
-        },
-
-        body: JSON.stringify({
-          model: "gpt-5.6-luna",
-          input,
-          max_output_tokens: outputTokens
-        })
+        maxOutputTokens:
+          type === "summary"
+            ? 2200
+            : type === "quiz"
+              ? 2600
+              : type === "flashcards"
+                ? 2200
+                : type === "chat"
+                  ? 1400
+                  : 1800
       }
-    );
+    };
 
-    const rawText =
-      await openaiResponse.text();
+    if (type === "quiz" || type === "flashcards") {
+      body.generationConfig.responseMimeType = "application/json";
+    }
+
+    const model = "gemini-3-flash-preview";
+
+    const url =
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+    const aiResponse = await fetch(url, {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
+
+      body: JSON.stringify(body)
+    });
+
+    const raw = await aiResponse.text();
 
     let data;
 
     try {
-      data = JSON.parse(rawText);
-    } catch (error) {
+      data = JSON.parse(raw);
+    } catch {
       console.error(
-        "OpenAI non-JSON response:",
-        rawText
+        "Gemini non-JSON response:",
+        raw
       );
 
       return res.status(502).json({
-        error:
-          "OpenAI вернул некорректный ответ."
+        error: "Gemini вернул некорректный ответ."
       });
     }
 
-    if (!openaiResponse.ok) {
+    if (!aiResponse.ok) {
       console.error(
-        "OpenAI API error:",
+        "Gemini API error:",
         data
       );
 
-      if (openaiResponse.status === 429) {
+      if (aiResponse.status === 429) {
         return res.status(429).json({
           code: "RATE_LIMITED",
           error:
-            "AI временно достиг лимита запросов. Попробуй снова позже. Фото теперь сначала распознаются бесплатно, поэтому такие запросы будут заметно легче."
+            "Бесплатный лимит Gemini временно достигнут. Попробуй позже."
         });
       }
 
-      return res.status(
-        openaiResponse.status
-      ).json({
+      return res.status(aiResponse.status).json({
         error:
           data?.error?.message ||
-          "Ошибка OpenAI."
+          "Ошибка Gemini API."
       });
     }
 
-    let result = "";
-
-    if (
-      typeof data.output_text === "string"
-    ) {
-      result = data.output_text;
-    }
-
-    if (
-      !result &&
-      Array.isArray(data.output)
-    ) {
-      for (
-        const item of data.output
-      ) {
-        if (
-          !Array.isArray(item.content)
-        ) {
-          continue;
-        }
-
-        for (
-          const content of item.content
-        ) {
-          if (
-            content.type === "output_text" &&
-            typeof content.text === "string"
-          ) {
-            result += content.text;
-          }
-        }
-      }
-    }
-
-    result = result.trim();
+    const result =
+      data?.candidates?.[0]?.content?.parts
+        ?.filter(
+          part => typeof part.text === "string"
+        )
+        ?.map(
+          part => part.text
+        )
+        ?.join("\n")
+        ?.trim() || "";
 
     if (!result) {
       console.error(
-        "OpenAI returned no text:",
+        "Gemini returned no text:",
         data
       );
 
       return res.status(502).json({
         error:
-          "AI не вернул текстовый результат."
+          "Gemini не вернул текстовый результат."
       });
     }
-
-    /*
-     * Для теста и карточек сервер сам проверяет,
-     * что AI действительно вернул JSON.
-     */
 
     if (
       type === "quiz" ||
       type === "flashcards"
     ) {
-      let clean = result
-        .replace(/^```json\s*/i, "")
-        .replace(/^```\s*/i, "")
-        .trim();
-
-      let parsed = null;
+      let parsed;
 
       try {
-        parsed = JSON.parse(clean);
-      } catch (error) {
-        const first =
-          clean.indexOf("[");
-
-        const last =
-          clean.lastIndexOf("]");
+        parsed = JSON.parse(result);
+      } catch {
+        const first = result.indexOf("[");
+        const last = result.lastIndexOf("]");
 
         if (
           first !== -1 &&
@@ -459,57 +338,29 @@ export default async function handler(req, res) {
         ) {
           try {
             parsed = JSON.parse(
-              clean.slice(
+              result.slice(
                 first,
                 last + 1
               )
             );
-          } catch (secondError) {
+          } catch {
             parsed = null;
           }
         }
       }
 
-      if (
-        parsed &&
-        !Array.isArray(parsed) &&
-        (
-          (
-            type === "quiz" &&
-            Array.isArray(
-              parsed.questions
-            )
-          ) ||
-          (
-            type === "flashcards" &&
-            Array.isArray(
-              parsed.cards
-            )
-          )
-        )
-      ) {
-        parsed =
-          type === "quiz"
-            ? parsed.questions
-            : parsed.cards;
-      }
-
       if (!Array.isArray(parsed)) {
-        console.error(
-          "Invalid structured AI result:",
-          result
-        );
-
         return res.status(502).json({
           error:
             type === "quiz"
-              ? "AI вернул тест в неправильном формате."
-              : "AI вернул карточки в неправильном формате."
+              ? "Gemini вернул тест в неправильном формате."
+              : "Gemini вернул карточки в неправильном формате."
         });
       }
 
-      result =
-        JSON.stringify(parsed);
+      return res.status(200).json({
+        result: JSON.stringify(parsed)
+      });
     }
 
     return res.status(200).json({
@@ -518,7 +369,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error(
-      "STUDYFISH SERVER ERROR:",
+      "STUDYFISH GEMINI SERVER ERROR:",
       error
     );
 
